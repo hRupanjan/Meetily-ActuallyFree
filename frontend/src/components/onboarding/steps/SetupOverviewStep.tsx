@@ -119,7 +119,7 @@ export function SetupOverviewStep() {
     >
       <div className="flex flex-col items-center space-y-10">
         {/* Steps Card */}
-        <div className="w-full max-w-md bg-white rounded-lg border border-gray-200 p-4">
+        <div className="w-full max-w-md bg-surface rounded-lg border border-border p-4">
           <div className="space-y-4">
             {steps.map((step) => {
               return (
@@ -128,14 +128,14 @@ export function SetupOverviewStep() {
                   className="flex items-start gap-4 p-1"
                 >
                   <div className="flex-1 ml-1">
-                    <h3 className="font-medium text-gray-900 flex items-center gap-2">
+                    <h3 className="font-medium text-content flex items-center gap-2">
                         Step {step.number} :  {step.title}
 
                         {step.type === 'summarization' && (
                             <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                <button className="text-gray-400 hover:text-gray-600">
+                                <button className="text-content-subtle hover:text-content-muted">
                                     <Info className="w-4 h-4" />
                                 </button>
                                 </TooltipTrigger>
@@ -154,17 +154,17 @@ export function SetupOverviewStep() {
           </div>
         </div>
 
-        <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-4">
+        <div className="w-full max-w-md rounded-lg border border-border bg-surface p-4">
           <div className="flex items-start gap-3">
-            <div className="rounded-full bg-blue-50 p-2 text-blue-600">
+            <div className="rounded-full bg-brand-soft p-2 text-brand">
               {whisperBackend === 'CPU' ? <Cpu className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-900">Transcription acceleration</p>
-              <p className="mt-1 text-sm font-semibold text-blue-700">
+              <p className="text-sm font-medium text-content">Transcription acceleration</p>
+              <p className="mt-1 text-sm font-semibold text-brand">
                 {accelerationLabel}
               </p>
-              <p className="mt-1 text-xs leading-5 text-gray-600">
+              <p className="mt-1 text-xs leading-5 text-content-muted">
                 {accelerationDescription} Live Parakeet transcription uses the CPU.
               </p>
             </div>
@@ -201,7 +201,7 @@ export function SetupOverviewStep() {
                     size="sm"
                     variant="outline"
                     onClick={cudaStatus?.reconfigurationRequired ? openLatestSetup : openNvidiaDrivers}
-                    className="border-amber-400 bg-white text-amber-950 hover:bg-amber-100"
+                    className="border-amber-400 bg-surface text-amber-950 hover:bg-amber-100"
                   >
                     {cudaStatus?.reconfigurationRequired ? 'Download CUDA setup' : 'Get NVIDIA driver'}
                   </Button>
@@ -234,7 +234,7 @@ export function SetupOverviewStep() {
             <button
               type="button"
               onClick={openIssues}
-              className="text-xs text-gray-600 hover:underline"
+              className="text-xs text-content-muted hover:underline"
             >
               View project on GitHub
             </button>
