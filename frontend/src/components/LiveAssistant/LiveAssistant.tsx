@@ -279,7 +279,7 @@ export function LiveAssistant() {
       <button
         onClick={() => setOpen(true)}
         title="Ask the live AI assistant (grounded in this meeting's transcript)"
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-blue-700"
+        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-brand-hover"
       >
         <span aria-hidden>✨</span>
         <span>Ask AI</span>
@@ -289,17 +289,17 @@ export function LiveAssistant() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 flex h-[560px] w-[400px] flex-col rounded-xl border border-gray-200 bg-white shadow-2xl">
-      <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+    <div className="fixed bottom-5 right-5 z-40 flex h-[560px] w-[400px] flex-col rounded-xl border border-border bg-surface shadow-2xl">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="flex items-center gap-2">
           <span aria-hidden>✨</span>
-          <span className="text-sm font-semibold text-gray-800">Live AI Assistant</span>
+          <span className="text-sm font-semibold text-content">Live AI Assistant</span>
         </div>
         <div className="flex items-center gap-1">
           <select
             value={persona}
             onChange={(e) => setPersona(e.target.value)}
-            className="rounded border border-gray-200 px-1 py-0.5 text-xs text-gray-600"
+            className="rounded border border-border px-1 py-0.5 text-xs text-content-muted"
             title="Persona / mode"
           >
             {Object.entries(PERSONAS).map(([k, v]) => (
@@ -308,50 +308,50 @@ export function LiveAssistant() {
           </select>
           <button
             onClick={() => setShowNotes((s) => !s)}
-            className={`rounded px-2 py-1 text-xs hover:bg-gray-100 ${notes.trim() ? 'text-blue-600' : 'text-gray-500'}`}
+            className={`rounded px-2 py-1 text-xs hover:bg-surface-hover ${notes.trim() ? 'text-brand' : 'text-content-muted'}`}
             title="Custom context / notes injected into every prompt"
           >
             Notes
           </button>
           <button
             onClick={() => setShowRag((s) => !s)}
-            className={`rounded px-2 py-1 text-xs hover:bg-gray-100 ${ragOn ? 'text-blue-600' : 'text-gray-500'}`}
+            className={`rounded px-2 py-1 text-xs hover:bg-surface-hover ${ragOn ? 'text-brand' : 'text-content-muted'}`}
             title="Search past meetings (RAG)"
           >
             Past
           </button>
-          <label className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100" title="Auto-suggest an answer when a question is heard">
+          <label className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-content-muted hover:bg-surface-hover" title="Auto-suggest an answer when a question is heard">
             <input type="checkbox" checked={autoSuggest} onChange={(e) => setAutoSuggest(e.target.checked)} className="h-3 w-3" />
             Auto
           </label>
-          <button onClick={() => setOpen(false)} className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100" title="Minimize">✕</button>
+          <button onClick={() => setOpen(false)} className="rounded px-2 py-1 text-xs text-content-muted hover:bg-surface-hover" title="Minimize">✕</button>
         </div>
       </div>
 
       {showNotes && (
-        <div className="border-b border-gray-100 bg-gray-50 p-2">
+        <div className="border-b border-border bg-surface-2 p-2">
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Context the AI should always know: agenda, participant names, jargon, your goals…"
-            className="w-full resize-none rounded border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
+            className="w-full resize-none rounded border border-border px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
           />
         </div>
       )}
 
       {showRag && (
-        <div className="border-b border-gray-100 bg-gray-50 p-2 text-xs">
+        <div className="border-b border-border bg-surface-2 p-2 text-xs">
           <label className="mb-1 flex items-center gap-2">
             <input type="checkbox" checked={ragOn} onChange={(e) => setRagOn(e.target.checked)} />
-            <span className="font-medium text-gray-700">Search past meetings (RAG)</span>
+            <span className="font-medium text-content">Search past meetings (RAG)</span>
           </label>
-          <div className="max-h-28 overflow-y-auto rounded border border-gray-200 bg-white">
+          <div className="max-h-28 overflow-y-auto rounded border border-border bg-surface">
             {meetings.length === 0 ? (
-              <div className="p-2 text-gray-400">No past meetings found.</div>
+              <div className="p-2 text-content-subtle">No past meetings found.</div>
             ) : (
               meetings.map((m) => (
-                <label key={m.id} className="flex cursor-pointer items-center gap-2 px-2 py-1 hover:bg-gray-50">
+                <label key={m.id} className="flex cursor-pointer items-center gap-2 px-2 py-1 hover:bg-surface-hover">
                   <input
                     type="checkbox"
                     checked={selectedMeetings.has(m.id)}
@@ -369,19 +369,19 @@ export function LiveAssistant() {
               ))
             )}
           </div>
-          <div className="mt-1 text-gray-400">
+          <div className="mt-1 text-content-subtle">
             Requires Ollama + an embedding model (<code>ollama pull nomic-embed-text</code>).
           </div>
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1 border-b border-gray-100 px-2 py-1.5">
+      <div className="flex flex-wrap gap-1 border-b border-border px-2 py-1.5">
         {QUICK_ASKS.map((q) => (
           <button
             key={q}
             onClick={() => askText(q)}
             disabled={busy}
-            className="rounded-full border border-gray-200 px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+            className="rounded-full border border-border px-2 py-0.5 text-xs text-content-muted hover:bg-surface-hover disabled:opacity-50"
           >
             {q}
           </button>
@@ -390,7 +390,7 @@ export function LiveAssistant() {
 
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
         {history.length === 0 && (
-          <div className="mt-6 text-center text-xs text-gray-400">
+          <div className="mt-6 text-center text-xs text-content-subtle">
             Ask anything about the live conversation, or use a chip above.
             <br /><br />
             Pick a <strong>persona</strong>, add <strong>Notes</strong>, or turn on <strong>Auto</strong> to draft answers as questions come up.
@@ -398,13 +398,13 @@ export function LiveAssistant() {
         )}
         {history.map((qa) => (
           <div key={qa.id} className="space-y-1">
-            <div className="ml-auto flex w-fit max-w-[85%] items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white">
+            <div className="ml-auto flex w-fit max-w-[85%] items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-sm text-white">
               {qa.auto && <span className="rounded bg-blue-800 px-1 text-[10px] uppercase tracking-wide">auto</span>}
               <span>{qa.question}</span>
             </div>
-            <div className="w-fit max-w-[92%] rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-800">
+            <div className="w-fit max-w-[92%] rounded-lg bg-surface-2 px-3 py-2 text-sm text-content">
               {qa.status === 'pending' ? (
-                <span className="inline-flex items-center gap-1 text-gray-500">
+                <span className="inline-flex items-center gap-1 text-content-muted">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400" /> Thinking…
                 </span>
               ) : (
@@ -413,7 +413,7 @@ export function LiveAssistant() {
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{qa.answer}</ReactMarkdown>
                   </div>
                   {qa.humanized && (
-                    <div className="mt-2 rounded-md border border-green-200 bg-green-50 px-2 py-1 text-sm text-green-900">
+                    <div className="mt-2 rounded-md border border-border bg-success-soft px-2 py-1 text-sm text-green-900">
                       <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-600">Say it naturally</div>
                       {qa.humanized}
                     </div>
@@ -422,7 +422,7 @@ export function LiveAssistant() {
                     <button
                       onClick={() => humanize(qa)}
                       disabled={busy}
-                      className="mt-1 text-xs text-blue-600 hover:underline disabled:opacity-50"
+                      className="mt-1 text-xs text-brand hover:underline disabled:opacity-50"
                       title="Rewrite this to sound natural spoken aloud"
                     >
                       🗣️ Say it naturally
@@ -435,7 +435,7 @@ export function LiveAssistant() {
                           key={i}
                           onClick={() => askText(f)}
                           disabled={busy}
-                          className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                          className="rounded-full border border-border bg-brand-soft px-2 py-0.5 text-xs text-brand hover:bg-surface-hover disabled:opacity-50"
                         >
                           {f}
                         </button>
@@ -449,7 +449,7 @@ export function LiveAssistant() {
         ))}
       </div>
 
-      <div className="border-t border-gray-100 p-2">
+      <div className="border-t border-border p-2">
         <div className="flex items-end gap-2">
           <textarea
             value={question}
@@ -457,9 +457,9 @@ export function LiveAssistant() {
             onKeyDown={handleKeyDown}
             rows={2}
             placeholder="Ask about the meeting…  (Enter to send)"
-            className="flex-1 resize-none rounded-lg border border-gray-200 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
+            className="flex-1 resize-none rounded-lg border border-border px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
           />
-          <button onClick={ask} disabled={busy || !question.trim()} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:bg-gray-300">
+          <button onClick={ask} disabled={busy || !question.trim()} className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white disabled:bg-surface-hover">
             {busy ? '…' : 'Ask'}
           </button>
         </div>
