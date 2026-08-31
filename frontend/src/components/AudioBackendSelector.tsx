@@ -113,7 +113,7 @@ export function AudioBackendSelector({
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-content-subtle">
+              <p className="mt-2 text-gray-300">
                 Try different backends to find which works best for your system.
               </p>
             </div>

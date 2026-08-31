@@ -474,7 +474,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
           {isProcessing && !isParentProcessing ? (
             <div className="flex items-center space-x-2">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              <span className="text-sm text-content-subtle">Processing recording...</span>
+              <span className="text-sm text-gray-300">Processing recording...</span>
             </div>
           ) : (
             <>
@@ -490,7 +490,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                   <div className="w-px h-6 bg-surface-hover mx-1" />
 
                   <div className="flex items-center space-x-1 mx-2">
-                    <div className="text-sm text-content-muted min-w-[40px]">
+                    <div className="text-sm text-gray-600 min-w-[40px]">
                       {formatTime(currentTime)}
                     </div>
                     <div
@@ -501,7 +501,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <div className="text-sm text-content-muted min-w-[40px]">
+                    <div className="text-sm text-gray-600 min-w-[40px]">
                       {formatTime(duration)}
                     </div>
                   </div>
@@ -569,12 +569,12 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
 
                       <div className="flex min-w-0 flex-1 flex-col gap-1.5 text-[12px]">
                         <div className="flex min-w-0 items-center gap-2" title={`Microphone: ${micName}`}>
-                          <Mic size={13} className="shrink-0 text-content-subtle" />
-                          <span className="truncate text-content-subtle">{micName}</span>
+                          <Mic size={13} className="shrink-0 text-gray-400" />
+                          <span className="truncate text-gray-300">{micName}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Volume2 size={13} className="shrink-0 text-content-subtle" />
-                          <span className="text-content-subtle">System audio</span>
+                          <Volume2 size={13} className="shrink-0 text-gray-400" />
+                          <span className="text-gray-400">System audio</span>
                           <span
                             className={`ml-0.5 h-2 w-2 rounded-full ${hasSystemAudio ? 'bg-emerald-500' : 'bg-red-500'}`}
                           />
@@ -607,7 +607,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                           fill the space between the timer and the controls. */}
                       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <span className={`w-12 shrink-0 text-[11px] ${isMicrophoneMuted ? 'text-orange-400' : 'text-content-subtle'}`}>
+                          <span className={`w-12 shrink-0 text-[11px] ${isMicrophoneMuted ? 'text-orange-400' : 'text-gray-400'}`}>
                             Mic
                           </span>
                           <LiveAudioVisualizer active={isRecording && !isPaused && !isMicrophoneMuted} source="mic" fill bars={28} className="flex-1" />
@@ -621,14 +621,14 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                             className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:opacity-40 ${
                               isMicrophoneMuted
                                 ? 'border-orange-500/40 bg-orange-500/15 text-orange-300 hover:bg-orange-500/25'
-                                : 'border-white/10 bg-white/5 text-content-subtle hover:bg-white/10 hover:text-gray-200'
+                                : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200'
                             }`}
                           >
                             {isMicrophoneMuted ? <MicOff size={13} /> : <Mic size={13} />}
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`w-12 shrink-0 text-[11px] ${isSystemAudioMuted ? 'text-orange-400' : 'text-content-subtle'}`}>
+                          <span className={`w-12 shrink-0 text-[11px] ${isSystemAudioMuted ? 'text-orange-400' : 'text-gray-400'}`}>
                             System
                           </span>
                           <LiveAudioVisualizer active={isRecording && !isPaused && !isSystemAudioMuted} source="system" fill bars={28} className="flex-1" />
@@ -642,7 +642,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                             className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:opacity-40 ${
                               isSystemAudioMuted
                                 ? 'border-orange-500/40 bg-orange-500/15 text-orange-300 hover:bg-orange-500/25'
-                                : 'border-white/10 bg-white/5 text-content-subtle hover:bg-white/10 hover:text-gray-200'
+                                : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200'
                             }`}
                           >
                             {isSystemAudioMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
@@ -663,7 +663,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                           }}
                           disabled={isPausing || isResuming || isStopping || isChangingMicrophoneMute || isChangingSystemAudioMute}
                           title={isPaused ? 'Resume recording' : 'Pause recording'}
-                          className="flex h-12 w-14 flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-xs text-content-subtle transition-colors hover:bg-white/10 disabled:opacity-40"
+                          className="flex h-12 w-14 flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-xs text-gray-300 transition-colors hover:bg-white/10 disabled:opacity-40"
                         >
                           {isPaused ? <Play size={15} /> : <Pause size={15} />}
                           <span className="mt-0.5 text-[10px]">{isPaused ? 'Resume' : 'Pause'}</span>
@@ -727,7 +727,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                             }}
                             disabled={isStopping}
                             title="Shrink to floating bar"
-                            className={`flex h-12 w-12 items-center justify-center rounded-2xl border text-content-subtle transition-colors disabled:opacity-40 ${
+                            className={`flex h-12 w-12 items-center justify-center rounded-2xl border text-gray-300 transition-colors disabled:opacity-40 ${
                               showCompactTip
                                 ? 'border-[var(--af-accent)]/60 bg-[var(--af-accent)]/15 ring-2 ring-[var(--af-accent)]/30'
                                 : 'border-white/10 bg-white/5 hover:bg-white/10'
