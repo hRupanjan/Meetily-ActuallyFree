@@ -306,7 +306,7 @@ export function BuiltInModelManager({
                   ? 'bg-surface border-border'
                   : 'bg-card',
                 selectedModel === model.name
-                  ? 'ring-2 ring-gray-800 border-gray-800'
+                  ? 'ring-2 ring-brand border-brand'
                   : 'border-border hover:border-border',
                 isAvailable && !modelIsDownloading && 'cursor-pointer'
               )}
