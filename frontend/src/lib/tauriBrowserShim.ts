@@ -33,6 +33,24 @@ const COMMANDS: Record<string, unknown> = {
   // No pending crash report — otherwise the [] default reads as truthy and the
   // crash dialog blocks the main app.
   get_pending_crash_report: null,
+  // Settings page dereferences notification_preferences.* directly.
+  get_notification_settings: {
+    respect_do_not_disturb: false,
+    notification_sound: true,
+    system_permission_granted: false,
+    consent_given: false,
+    manual_dnd_mode: false,
+    notification_preferences: {
+      show_recording_started: true,
+      show_recording_stopped: true,
+      show_recording_paused: true,
+      show_recording_resumed: true,
+      show_transcription_complete: true,
+      show_meeting_reminders: true,
+      show_system_errors: true,
+      meeting_reminder_minutes: [5],
+    },
+  },
 };
 
 if (typeof window !== "undefined" && !window.__TAURI_INTERNALS__) {
