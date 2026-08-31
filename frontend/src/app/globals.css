@@ -379,8 +379,8 @@ html.dark {
 
 /* Softer, consistent corners. Tailwind's default rounded-lg (8px) reads sharp
    next to modern desktop UI; card-level surfaces get a touch more. */
-.dark .rounded-lg { border-radius: var(--af-radius) !important; }
-.dark .rounded-md { border-radius: var(--af-radius-sm) !important; }
+.dark .rounded-lg { border-radius: var(--af-radius); }
+.dark .rounded-md { border-radius: var(--af-radius-sm); }
 
 /* Calm, uniform motion. Without this, some elements snap and others ease,
    which is a large part of why an interface feels unfinished. */
