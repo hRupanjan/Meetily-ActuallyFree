@@ -434,17 +434,17 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-center text-gray-500 mt-8"
+                    className="text-center text-content-muted mt-8"
                 >
                     {isRecording ? (
                         <>
                             <div className="flex items-center justify-center mb-3">
                                 <div className={`w-3 h-3 rounded-full ${isPaused ? 'bg-orange-500' : 'bg-blue-500 animate-pulse'}`}></div>
                             </div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-content-muted">
                                 {isPaused ? 'Recording paused' : 'Listening for speech...'}
                             </p>
-                            <p className="text-xs mt-1 text-gray-400">
+                            <p className="text-xs mt-1 text-content-subtle">
                                 {isPaused ? 'Click resume to continue recording' : 'Speak to see live transcription'}
                             </p>
                         </>
@@ -504,12 +504,12 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                     {(hasMore || isLoadingMore) && !isRecording && displaySegments.length > 0 && (
                         <div ref={loadMoreTriggerRef} className="flex justify-center items-center py-4 mt-2">
                             {isLoadingMore ? (
-                                <div className="flex items-center gap-2 text-gray-500">
-                                    <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                                <div className="flex items-center gap-2 text-content-muted">
+                                    <div className="w-4 h-4 border-2 border-border border-t-gray-600 rounded-full animate-spin" />
                                     <span className="text-sm">Loading more...</span>
                                 </div>
                             ) : hasMore && totalCount > 0 ? (
-                                <span className="text-sm text-gray-400">
+                                <span className="text-sm text-content-subtle">
                                     Showing {loadedCount} of {totalCount} segments
                                 </span>
                             ) : null}
@@ -519,7 +519,7 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                     {/* Status line — always reserve space while recording so pause
                         doesn't collapse layout and shove bubbles under the bar. */}
                     {!isStopping && isRecording && !isProcessing && displaySegments.length > 0 && (
-                        <div className="flex items-center gap-2 mt-4 mb-2 min-h-[1.25rem] text-gray-500">
+                        <div className="flex items-center gap-2 mt-4 mb-2 min-h-[1.25rem] text-content-muted">
                             {!isPaused && (
                                 <>
                                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
@@ -566,12 +566,12 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                     {(hasMore || isLoadingMore) && !isRecording && displaySegments.length > 0 && (
                         <div ref={loadMoreTriggerRef} className="flex justify-center items-center py-4 mt-2">
                             {isLoadingMore ? (
-                                <div className="flex items-center gap-2 text-gray-500">
-                                    <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                                <div className="flex items-center gap-2 text-content-muted">
+                                    <div className="w-4 h-4 border-2 border-border border-t-gray-600 rounded-full animate-spin" />
                                     <span className="text-sm">Loading more...</span>
                                 </div>
                             ) : hasMore && totalCount > 0 ? (
-                                <span className="text-sm text-gray-400">
+                                <span className="text-sm text-content-subtle">
                                     Showing {loadedCount} of {totalCount} segments
                                 </span>
                             ) : null}
@@ -579,7 +579,7 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                     )}
 
                     {!isStopping && isRecording && !isProcessing && displaySegments.length > 0 && (
-                        <div className="flex items-center gap-2 mt-4 mb-2 min-h-[1.25rem] text-gray-500">
+                        <div className="flex items-center gap-2 mt-4 mb-2 min-h-[1.25rem] text-content-muted">
                             {!isPaused && (
                                 <>
                                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />

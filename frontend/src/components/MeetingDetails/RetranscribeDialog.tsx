@@ -349,7 +349,7 @@ export function RetranscribeDialog({
           <DialogTitle className="flex items-center gap-2">
             {isProcessing ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <Loader2 className="h-5 w-5 animate-spin text-brand" />
                 Retranscribing...
               </>
             ) : error ? (
@@ -359,7 +359,7 @@ export function RetranscribeDialog({
               </>
             ) : (
               <>
-                <RefreshCw className="h-5 w-5 text-blue-600" />
+                <RefreshCw className="h-5 w-5 text-brand" />
                 Retranscribe Meeting
               </>
             )}
@@ -543,13 +543,13 @@ export function RetranscribeDialog({
           {isProcessing && progress && (
             <div className="space-y-2">
               <div className="relative">
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-surface-hover rounded-full h-3">
                   <div
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-300 ease-out"
+                    className="bg-brand h-3 rounded-full transition-all duration-300 ease-out"
                     style={{ width: `${Math.min(progress.progress_percentage, 100)}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-xs text-gray-600 mt-1">
+                <div className="flex justify-between text-xs text-content-muted mt-1">
                   <span>{progress.stage}</span>
                   <span>{Math.round(progress.progress_percentage)}%</span>
                 </div>
@@ -575,7 +575,7 @@ export function RetranscribeDialog({
               </Button>
               <Button
                 onClick={handleStartRetranscription}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-brand hover:bg-brand-hover"
                 disabled={!meetingFolderPath || !listenersReady || isClearingMeetingVocabulary || loadingModels || !selectedModelDetails}
               >
                 <RefreshCw className="h-4 w-4 mr-2" />

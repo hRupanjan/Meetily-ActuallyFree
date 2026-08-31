@@ -301,7 +301,7 @@ export function SummaryGeneratorButtonGroup({
         <Button
           variant="outline"
           size="sm"
-          className="bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100 border-red-200 xl:px-4"
+          className="bg-surface-2 hover:bg-surface-hover border-border xl:px-4"
           onClick={() => {
             Analytics.trackButtonClick('stop_summary_generation', 'meeting_details');
             onStopGeneration();
@@ -316,7 +316,7 @@ export function SummaryGeneratorButtonGroup({
         <Button
           variant="outline"
           size="sm"
-          className="bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 border-blue-200 xl:px-4"
+          className="bg-surface-2 hover:bg-surface-hover border-border xl:px-4"
           onClick={handlePrimaryClick}
           disabled={isCheckingModels || isModelConfigLoading}
           title={
@@ -408,7 +408,7 @@ export function SummaryGeneratorButtonGroup({
             {onManageTemplates && (
               <DropdownMenuItem
                 onClick={onManageTemplates}
-                className="mt-1 border-t border-gray-100 font-medium text-blue-600"
+                className="mt-1 border-t border-border font-medium text-brand"
               >
                 ＋ New / manage templates…
               </DropdownMenuItem>
@@ -421,11 +421,11 @@ export function SummaryGeneratorButtonGroup({
       <Dialog open={contextModalOpen} onOpenChange={setContextModalOpen}>
         <DialogContent aria-describedby={undefined} className="sm:max-w-lg">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <Sparkles size={18} className="text-blue-500" />
+            <Sparkles size={18} className="text-brand" />
             Regenerate summary
           </DialogTitle>
           <div className="mt-2 space-y-3">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-content-muted">
               Add any one-off instructions for this run (optional). This won’t change your saved
               settings — it only guides this regeneration.
             </p>
@@ -451,7 +451,7 @@ export function SummaryGeneratorButtonGroup({
                   onClick={() =>
                     setContextInput((prev) => (prev.trim() ? `${prev.trim()}\n${s}` : s))
                   }
-                  className="rounded-full border border-[var(--af-border,#e5e7eb)] px-2.5 py-1 text-xs text-gray-500 transition-colors hover:border-blue-400 hover:text-blue-500"
+                  className="rounded-full border border-[var(--af-border,#e5e7eb)] px-2.5 py-1 text-xs text-content-muted transition-colors hover:border-blue-400 hover:text-brand"
                 >
                   + {s}
                 </button>

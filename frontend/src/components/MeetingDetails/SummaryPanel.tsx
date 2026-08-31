@@ -254,7 +254,7 @@ export function SummaryPanel({
         >
           <Languages size={18} />
           <span className="hidden lg:inline">{effectiveLangLabel}</span>
-          <ChevronDown size={14} className="text-gray-400" />
+          <ChevronDown size={14} className="text-content-subtle" />
         </Button>
       </PopoverTrigger>
       <PopoverContent

@@ -199,11 +199,11 @@ export function TranscriptButtonGroup({
       <Dialog open={showSpeakerDialog} onOpenChange={setShowSpeakerDialog}>
         <DialogContent aria-describedby={undefined} className="sm:max-w-md">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <Users size={18} className="text-blue-500" />
+            <Users size={18} className="text-brand" />
             Identify speakers
           </DialogTitle>
           <div className="mt-2 space-y-3">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-content-muted">
               How many distinct voices were in this meeting, <span className="text-[var(--af-text,#374151)] font-medium">including you</span>?
               For example, you plus one other person is <span className="text-[var(--af-text,#374151)] font-medium">2</span>.
               Entering the count is much more accurate than auto-detect — leave blank to guess.
@@ -233,8 +233,8 @@ export function TranscriptButtonGroup({
                   onClick={() => setExpectedSpeakers(String(n))}
                   className={`rounded-full border px-3 py-1 text-xs transition-colors ${
                     expectedSpeakers === String(n)
-                      ? 'border-blue-500 bg-blue-50 text-blue-600'
-                      : 'border-[var(--af-border,#e5e7eb)] text-gray-500 hover:border-blue-400 hover:text-blue-500'
+                      ? 'border-blue-500 bg-brand-soft text-brand'
+                      : 'border-[var(--af-border,#e5e7eb)] text-content-muted hover:border-blue-400 hover:text-brand'
                   }`}
                 >
                   {n}
@@ -248,7 +248,7 @@ export function TranscriptButtonGroup({
             </Button>
             <Button
               size="sm"
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-brand text-white hover:bg-brand-hover"
               onClick={() => {
                 const n = parseInt(expectedSpeakers, 10);
                 handleIdentifySpeakers(Number.isFinite(n) && n > 0 ? n : undefined);

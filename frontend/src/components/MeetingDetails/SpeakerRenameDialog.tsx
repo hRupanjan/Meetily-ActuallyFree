@@ -105,12 +105,12 @@ export function SpeakerRenameDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby={undefined} className="sm:max-w-md">
         <DialogTitle className="flex items-center gap-2 text-base">
-          <UserRound size={18} className="text-blue-500" />
+          <UserRound size={18} className="text-brand" />
           Who is {speaker}?
         </DialogTitle>
 
         <div className="mt-2 space-y-3">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-content-muted">
             Changes every line spoken by <strong>{speaker}</strong> in this meeting.
             Clear the field and save to remove an assigned name.
           </p>
@@ -136,7 +136,7 @@ export function SpeakerRenameDialog({
             type="button"
             onClick={() => submit('You')}
             disabled={saving}
-            className="flex w-full items-center gap-2 rounded-md border border-[var(--af-border,#e5e7eb)] px-3 py-2 text-left text-sm text-gray-600 transition-colors hover:border-blue-400 hover:text-blue-500"
+            className="flex w-full items-center gap-2 rounded-md border border-[var(--af-border,#e5e7eb)] px-3 py-2 text-left text-sm text-content-muted transition-colors hover:border-blue-400 hover:text-brand"
           >
             <UserRound size={15} />
             This is me{userName ? ` — ${userName}` : ''}
@@ -161,7 +161,7 @@ export function SpeakerRenameDialog({
           </Button>
           <Button
             size="sm"
-            className="bg-blue-600 text-white hover:bg-blue-700"
+            className="bg-brand text-white hover:bg-brand-hover"
             disabled={(!name.trim() && !canRemoveName) || saving}
             onClick={() => submit(name)}
           >
