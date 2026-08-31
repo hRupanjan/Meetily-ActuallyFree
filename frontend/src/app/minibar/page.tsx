@@ -176,7 +176,7 @@ export default function MiniBarPage() {
           <div className="font-semibold tabular-nums tracking-tight">{formatElapsed(elapsed)}</div>
           <div
             className={`text-[11px] ${
-              isStopping ? 'text-gray-400' : isPaused ? 'text-orange-400' : 'text-red-400'
+              isStopping ? 'text-content-subtle' : isPaused ? 'text-orange-400' : 'text-red-400'
             }`}
           >
             {isStopping ? 'Finishing…' : isPaused ? 'Paused' : 'Recording'}
@@ -189,7 +189,7 @@ export default function MiniBarPage() {
       {/* Live input levels â€” same Rust events the main window listens to. */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
-          <span className={`w-12 text-[11px] ${isMicMuted ? 'text-orange-400' : 'text-gray-400'}`}>
+          <span className={`w-12 text-[11px] ${isMicMuted ? 'text-orange-400' : 'text-content-subtle'}`}>
             Mic
           </span>
           <LiveAudioVisualizer active={!isPaused && !isStopping && !isMicMuted} source="mic" bars={14} />
@@ -203,14 +203,14 @@ export default function MiniBarPage() {
             className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:opacity-40 ${
               isMicMuted
                 ? 'border-orange-500/40 bg-orange-500/15 text-orange-300 hover:bg-orange-500/25'
-                : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200'
+                : 'border-white/10 bg-white/5 text-content-subtle hover:bg-white/10 hover:text-gray-200'
             }`}
           >
             {isMicMuted ? <MicOff size={13} /> : <Mic size={13} />}
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`w-12 text-[11px] ${isSystemMuted ? 'text-orange-400' : 'text-gray-400'}`}>
+          <span className={`w-12 text-[11px] ${isSystemMuted ? 'text-orange-400' : 'text-content-subtle'}`}>
             System
           </span>
           <LiveAudioVisualizer active={!isPaused && !isStopping && !isSystemMuted} source="system" bars={14} />
@@ -224,7 +224,7 @@ export default function MiniBarPage() {
             className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:opacity-40 ${
               isSystemMuted
                 ? 'border-orange-500/40 bg-orange-500/15 text-orange-300 hover:bg-orange-500/25'
-                : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200'
+                : 'border-white/10 bg-white/5 text-content-subtle hover:bg-white/10 hover:text-gray-200'
             }`}
           >
             {isSystemMuted ? <VolumeX size={13} /> : <Monitor size={13} />}
@@ -237,7 +237,7 @@ export default function MiniBarPage() {
           onClick={togglePause}
           disabled={isStopping || isChangingMicMute || isChangingSystemMute}
           title={isPaused ? 'Resume recording' : 'Pause recording'}
-          className="flex h-10 w-14 flex-col items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs text-gray-300 transition-colors hover:bg-white/10 disabled:opacity-40"
+          className="flex h-10 w-14 flex-col items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs text-content-subtle transition-colors hover:bg-white/10 disabled:opacity-40"
         >
           {isPaused ? <Play size={15} /> : <Pause size={15} />}
           <span className="mt-0.5 text-[10px]">{isPaused ? 'Resume' : 'Pause'}</span>
@@ -257,7 +257,7 @@ export default function MiniBarPage() {
           onClick={expand}
           disabled={isStopping || isChangingMicMute || isChangingSystemMute}
           title="Back to the full window"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 transition-colors hover:bg-white/10 disabled:opacity-40"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-content-subtle transition-colors hover:bg-white/10 disabled:opacity-40"
         >
           <Maximize2 size={14} />
         </button>

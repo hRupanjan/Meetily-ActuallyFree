@@ -94,14 +94,14 @@ export default function SettingsPage() {
   }, []);
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-col overflow-hidden bg-gray-50">
+    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-col overflow-hidden bg-surface-2">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-gray-200 bg-gray-50">
+      <div className="flex-shrink-0 border-b border-border bg-surface-2">
         <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <button
               onClick={() => router.back()}
-              className="flex shrink-0 items-center gap-2 text-gray-600 transition-colors hover:text-gray-900"
+              className="flex shrink-0 items-center gap-2 text-content-muted transition-colors hover:text-content"
             >
               <ArrowLeft className="h-5 w-5" />
               <span className="hidden sm:inline">Back</span>
@@ -122,7 +122,7 @@ export default function SettingsPage() {
                 className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain no-scrollbar"
                 style={{ WebkitOverflowScrolling: 'touch' }}
               >
-                <TabsList className="relative flex h-auto w-max min-w-full flex-nowrap justify-start gap-0 rounded-none border-b border-gray-200 bg-transparent p-0">
+                <TabsList className="relative flex h-auto w-max min-w-full flex-nowrap justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
                   {TABS.map((tab, index) => {
                     const Icon = tab.icon;
                     return (
@@ -130,7 +130,7 @@ export default function SettingsPage() {
                         key={tab.value}
                         value={tab.value}
                         ref={el => { tabRefs.current[index] = el; }}
-                        className="relative z-10 flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none border-0 bg-transparent px-3 py-3 text-sm text-gray-600 shadow-none hover:text-gray-900 data-[state=active]:bg-transparent data-[state=active]:text-blue-600 data-[state=active]:shadow-none sm:gap-2 sm:px-4 sm:py-4"
+                        className="relative z-10 flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none border-0 bg-transparent px-3 py-3 text-sm text-content-muted shadow-none hover:text-content data-[state=active]:bg-transparent data-[state=active]:text-brand data-[state=active]:shadow-none sm:gap-2 sm:px-4 sm:py-4"
                       >
                         <Icon className="h-4 w-4 shrink-0" />
                         <span>{tab.label}</span>
@@ -138,7 +138,7 @@ export default function SettingsPage() {
                     );
                   })}
                   <motion.div
-                    className="pointer-events-none absolute bottom-0 z-20 h-0.5 bg-blue-600"
+                    className="pointer-events-none absolute bottom-0 z-20 h-0.5 bg-brand"
                     layoutId="settings-tab-underline"
                     style={{ left: underlineStyle.left, width: underlineStyle.width }}
                     transition={{ type: 'spring', stiffness: 400, damping: 40 }}
