@@ -233,6 +233,9 @@
 
   --af-accent: #2563eb;
   --af-accent-soft: #e7efff;
+  --af-accent-hover: #1d4ed8;
+  --af-success: #15803d;
+  --af-success-soft: #ecfdf3;
 
   --af-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
   --af-shadow-md: 0 2px 6px rgba(15, 23, 42, 0.10), 0 1px 2px rgba(15, 23, 42, 0.07);
@@ -262,6 +265,9 @@ html.dark {
 
   --af-accent: #4a8bff;
   --af-accent-soft: #16233d;
+  --af-accent-hover: #3b7ae8;
+  --af-success: #7ee2a8;
+  --af-success-soft: #12251a;
 
   /* Layered shadows read as depth; a single heavy blur reads as a smudge. */
   --af-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
