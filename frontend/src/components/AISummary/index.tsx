@@ -593,7 +593,7 @@ export const AISummary = ({ summary, status, error, onSummaryChange, onRegenerat
   };
 
   const renderErrorState = () => (
-    <div className="w-full p-4 bg-red-50 border border-red-200 rounded-lg">
+    <div className="w-full p-4 bg-red-50 border border-border rounded-lg">
       <div className="flex items-center mb-2">
         <ExclamationTriangleIcon className="h-5 w-5 text-red-500 mr-2" />
         <h3 className="text-red-700 font-medium">Error Generating Summary</h3>
@@ -604,11 +604,11 @@ export const AISummary = ({ summary, status, error, onSummaryChange, onRegenerat
   );
 
   const renderLoadingState = () => (
-    <div className="w-full p-4 bg-brand-soft border border-blue-200 rounded-lg">
+    <div className="w-full p-4 bg-brand-soft border border-border rounded-lg">
       <div className="flex items-center space-x-3">
         <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
         <div>
-          <h3 className="text-blue-700 font-medium">
+          <h3 className="text-brand font-medium">
             {status === 'processing' ? 'Processing Transcript' : 'Generating Summary'}
           </h3>
           <p className="text-brand text-sm">

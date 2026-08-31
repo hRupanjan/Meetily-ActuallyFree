@@ -302,7 +302,7 @@ export function SettingsModals({
     {/* Error Alert Modal */}
     {modals.errorAlert && (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <Alert className="max-w-md mx-4 border-red-200 bg-surface shadow-xl">
+        <Alert className="max-w-md mx-4 border-border bg-surface shadow-xl">
           <AlertTitle className="text-red-800">Recording Stopped</AlertTitle>
           <AlertDescription className="text-red-700">
             {messages.errorAlert}

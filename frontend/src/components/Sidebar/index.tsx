@@ -806,7 +806,7 @@ const Sidebar: React.FC = () => {
             {/* Bulk-selection action bar */}
             {!isCollapsed && selectedIds.size > 0 && (
               <div className="mx-3 mb-1 flex items-center justify-between rounded-md bg-brand-soft px-3 py-2 text-sm">
-                <span className="font-medium text-blue-700">{selectedIds.size} selected</span>
+                <span className="font-medium text-brand">{selectedIds.size} selected</span>
                 <div className="flex items-center gap-2">
                   <button onClick={clearSelection} className="text-content-muted hover:text-content">Clear</button>
                   <button
