@@ -7,7 +7,8 @@
         "frontendDist": "../out",
         "devUrl": "http://localhost:3118",
         "beforeDevCommand": "node node_modules/next/dist/bin/next dev -p 3118",
-        "beforeBuildCommand": "node node_modules/next/dist/bin/next build"
+        "beforeBuildCommand": "node node_modules/next/dist/bin/next build",
+        "beforeBundleCommand": "powershell -ExecutionPolicy Bypass -File scripts/stage-runtime-deps.ps1"
     },
     "app": {
         "windows": [
@@ -85,7 +86,8 @@
     "bundle": {
         "active": true,
         "targets": [
-            "nsis"
+            "nsis",
+            "msi"
         ],
         "createUpdaterArtifacts": false,
         "icon": [
