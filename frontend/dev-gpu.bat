@@ -30,7 +30,7 @@ echo.
 echo.
 
 REM Kill any existing processes on port 3118
-echo 🧹 Checking for existing processes on port 3118...
+echo [CLEAN] Checking for existing processes on port 3118...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3118 2^>nul') do (
     echo    Killing process %%a on port 3118
     taskkill /PID %%a /F >nul 2>&1
@@ -40,7 +40,7 @@ REM Set libclang path for whisper-rs-sys
 set "LIBCLANG_PATH=C:\Program Files\LLVM\bin"
 
 REM Try to find and setup Visual Studio environment
-echo 🔧 Setting up Visual Studio environment...
+echo [SETUP] Setting up Visual Studio environment...
 if exist "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" (
     echo    Using Visual Studio 2022 Build Tools
     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1
@@ -65,7 +65,7 @@ if exist "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxi
     echo    Using Visual Studio 2019 Build Tools
     call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1
 ) else (
-    echo    ⚠️  Visual Studio not found, using manual SDK setup
+    echo    [WARN]  Visual Studio not found, using manual SDK setup
     set "WindowsSDKVersion=10.0.22621.0"
     set "WindowsSDKLibVersion=10.0.22621.0"
     set "WindowsSDKIncludeVersion=10.0.22621.0"
@@ -74,12 +74,19 @@ if exist "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxi
     set "PATH=C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64;%PATH%"
 )
 
+REM Prefer newer MSVC STL libs (VS18) so the linker can resolve modern
+REM __std_* / charconv symbols pulled in by the prebuilt onnxruntime (ort crate).
+if exist "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.50.35717\lib\x64\msvcprt.lib" (
+    echo    Prepending VS18 MSVC STL libs for onnxruntime link
+    set "LIB=C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.50.35717\lib\x64;%LIB%"
+)
+
 REM Export environment variables for the child process
 set "RUST_ENV_LIB=%LIB%"
 set "RUST_ENV_INCLUDE=%INCLUDE%"
 
 echo.
-echo 📦 Starting Meetily in development mode...
+echo [BUILD] Starting Meetily in development mode...
 echo.
 
 REM Find package.json location
@@ -89,7 +96,7 @@ if exist "package.json" (
     echo    Found package.json in frontend directory
     cd frontend
 ) else (
-    echo    ❌ Error: Could not find package.json
+    echo    [ERROR] Error: Could not find package.json
     echo    Make sure you're in the project root or frontend directory
     exit /b 1
 )
@@ -111,28 +118,52 @@ if %errorlevel% equ 0 (
 
 if %USE_PNPM% equ 0 (
     if %USE_NPM% equ 0 (
-        echo    ❌ Error: Neither npm nor pnpm found
+        echo    [ERROR] Error: Neither npm nor pnpm found
         exit /b 1
     )
 )
 
-REM Detect GPU feature
-echo 🔍 Detecting GPU features...
-for /f "delims=" %%i in ('node scripts/auto-detect-gpu.js') do set TAURI_GPU_FEATURE=%%i
-
+REM Detect GPU feature (honor a preset TAURI_GPU_FEATURE, e.g. from tauri:dev:cuda)
 if defined TAURI_GPU_FEATURE (
-    echo ✅ Detected GPU feature: !TAURI_GPU_FEATURE!
+    echo [OK] Using forced GPU feature: !TAURI_GPU_FEATURE!
 ) else (
-    echo ⚠️ No specific GPU feature detected or forced
+    echo [DETECT] Detecting GPU features...
+    for /f "delims=" %%i in ('node scripts/auto-detect-gpu.js') do set TAURI_GPU_FEATURE=%%i
+    if defined TAURI_GPU_FEATURE (
+        echo [OK] Detected GPU feature: !TAURI_GPU_FEATURE!
+    ) else (
+        echo [WARN] No specific GPU feature detected or forced
+    )
+)
+
+REM ============================================================
+REM  CUDA 13.x build fixes - same as build-gpu.bat, needed here too
+REM  because dev compiles the CUDA sys-crates. Each guarded so you can override.
+REM ============================================================
+if /i "!TAURI_GPU_FEATURE!"=="cuda" (
+    echo [FIX] Applying CUDA 13.x build fixes...
+    if not defined CMAKE_GENERATOR set "CMAKE_GENERATOR=Ninja"
+    if not defined CARGO_BUILD_JOBS set "CARGO_BUILD_JOBS=4"
+    if not defined CMAKE_BUILD_PARALLEL_LEVEL set "CMAKE_BUILD_PARALLEL_LEVEL=4"
+    if not defined CUDAARCHS set "CUDAARCHS=120"
+    if not defined CUDAFLAGS set "CUDAFLAGS=-Xcompiler=/Zc:preprocessor -std=c++17"
+    set "MEETILY_STAGE_CUDA=1"
+    where ninja >nul 2>&1
+    if errorlevel 1 (
+        echo    [WARN]  ninja not found on PATH - CUDA build needs it. Install: pip install ninja
+    )
+    echo    Cleaning stale CMake caches...
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-stale-cmake.ps1
+    echo    CMAKE_GENERATOR=!CMAKE_GENERATOR!  CUDAARCHS=!CUDAARCHS!  JOBS=!CARGO_BUILD_JOBS!
 )
 
 REM Build llama-helper
 echo.
-echo 🦙 Building llama-helper sidecar (debug)...
+echo [HELPER] Building llama-helper sidecar (debug)...
 
 set "HELPER_DIR=..\llama-helper"
 if not exist "%HELPER_DIR%" (
-    echo ❌ Could not find llama-helper directory at %HELPER_DIR%
+    echo [ERROR] Could not find llama-helper directory at %HELPER_DIR%
     exit /b 1
 )
 
@@ -145,16 +176,16 @@ echo    Building in %HELPER_DIR% with features: %HELPER_FEATURES%
 pushd "%HELPER_DIR%"
 call cargo build %HELPER_FEATURES%
 if errorlevel 1 (
-    echo ❌ Failed to build llama-helper
+    echo [ERROR] Failed to build llama-helper
     popd
     exit /b 1
 )
 popd
-echo ✅ llama-helper built successfully
+echo [OK] llama-helper built successfully
 
 REM Detect target triple
 echo.
-echo 🎯 Detecting target triple...
+echo [TARGET] Detecting target triple...
 for /f "tokens=2" %%i in ('rustc -vV ^| findstr "host:"') do set TARGET_TRIPLE=%%i
 echo    Target: !TARGET_TRIPLE!
 
@@ -177,17 +208,26 @@ if not exist "%SRC_PATH%" (
 
 if exist "%SRC_PATH%" (
     copy /Y "%SRC_PATH%" "%DEST_PATH%" >nul
-    echo ✅ Copied binary to %DEST_PATH%
+    echo [OK] Copied binary to %DEST_PATH%
 ) else (
-    echo ❌ Binary not found at %SRC_PATH%
-    echo ⚠️ Contents of ..\target\debug:
+    echo [ERROR] Binary not found at %SRC_PATH%
+    echo [WARN] Contents of ..\target\debug:
     dir "..\target\debug"
     exit /b 1
 )
 
+REM tauri's build-script codegen validates the bundle.resources glob
+REM (runtime-deps/*) even in dev, so it must be non-empty. Pre-stage the CUDA
+REM DLLs (DirectML.dll loads from target\debug at runtime via PATH).
+if not exist "src-tauri\runtime-deps" mkdir "src-tauri\runtime-deps"
+if /i "!TAURI_GPU_FEATURE!"=="cuda" (
+    echo    Pre-staging CUDA runtime DLLs for resource glob...
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\stage-runtime-deps.ps1 -AllowMissing
+)
+
 REM Run tauri dev
 echo.
-echo 📦 Starting complete Tauri application...
+echo [BUILD] Starting complete Tauri application...
 echo.
 
 if %USE_PNPM% equ 1 (
@@ -198,13 +238,13 @@ if %USE_PNPM% equ 1 (
 
 if errorlevel 1 (
     echo.
-    echo ❌ Development server encountered an error
+    echo [ERROR] Development server encountered an error
     exit /b 1
 )
 
 echo.
 echo ========================================
-echo ✅ Development server stopped cleanly
+echo [OK] Development server stopped cleanly
 echo ========================================
 echo.
 exit /b 0

@@ -12,7 +12,7 @@
         "tauri:dev": "node scripts/tauri-auto.js dev",
         "tauri:build": "node scripts/tauri-auto.js build",
         "tauri:dev:cpu": "tauri dev",
-        "tauri:dev:cuda": "tauri dev -- --features cuda",
+        "tauri:dev:cuda": "set \"TAURI_GPU_FEATURE=cuda\" && .\\dev-gpu.bat",
         "tauri:dev:vulkan": "tauri dev -- --features vulkan",
         "tauri:dev:metal": "tauri dev -- --features metal",
         "tauri:dev:coreml": "tauri dev -- --features coreml",
