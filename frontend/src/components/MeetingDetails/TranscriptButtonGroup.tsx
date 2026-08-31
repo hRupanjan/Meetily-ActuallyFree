@@ -106,7 +106,7 @@ export function TranscriptButtonGroup({
 
   return (
     <div className="flex w-max min-w-full shrink-0 items-center justify-end">
-      <ButtonGroup className="shrink-0">
+      <ButtonGroup className="shrink-0 [&>button]:shadow-none [&>button:not(:first-child)]:rounded-l-none [&>button:not(:first-child)]:border-l-0 [&>button:not(:last-child)]:rounded-r-none">
         <Button
           variant="outline"
           size="sm"

@@ -376,35 +376,6 @@ html.dark {
   text-rendering: optimizeLegibility;
 }
 
-/* Tighter tracking on large text. Default tracking is tuned for body copy and
-   makes headings look loose and amateurish at display sizes. */
-.dark h1, .dark h2, .dark h3,
-.dark .text-2xl, .dark .text-3xl, .dark .text-xl {
-  letter-spacing: -0.018em;
-}
-
-/* Softer, consistent corners. Tailwind's default rounded-lg (8px) reads sharp
-   next to modern desktop UI; card-level surfaces get a touch more. */
-.dark .rounded-lg { border-radius: var(--af-radius); }
-.dark .rounded-md { border-radius: var(--af-radius-sm); }
-
-/* Calm, uniform motion. Without this, some elements snap and others ease,
-   which is a large part of why an interface feels unfinished. */
-.dark button,
-.dark a,
-.dark [role="button"],
-.dark input,
-.dark textarea,
-.dark select,
-.dark [data-slot="input-group"] {
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease,
-    box-shadow 140ms ease,
-    opacity 140ms ease;
-}
-
 /* Focus: a soft accent ring instead of the browser's hard outline. Visible for
    keyboard users, unobtrusive for mouse users. */
 .dark :focus-visible {
