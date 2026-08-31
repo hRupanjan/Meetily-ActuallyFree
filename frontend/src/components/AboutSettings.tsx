@@ -76,14 +76,14 @@ export function AboutSettings() {
         <h4 className="text-sm font-semibold text-content">Links</h4>
         <button
           onClick={() => openUrl(REPO_URL)}
-          className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md border border-border hover:border-border hover:bg-surface-hover transition-colors"
+          className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md border border-border hover:border-blue-400 hover:bg-brand-soft transition-colors"
         >
           <Github className="w-4 h-4 text-content" />
           <span className="text-sm text-content">Source code on GitHub</span>
         </button>
         <button
           onClick={() => openUrl(`${REPO_URL}/blob/main/PRIVACY_POLICY.md`)}
-          className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md border border-border hover:border-border hover:bg-surface-hover transition-colors"
+          className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md border border-border hover:border-blue-400 hover:bg-brand-soft transition-colors"
         >
           <Shield className="w-4 h-4 text-content" />
           <span className="text-sm text-content">Privacy policy</span>
