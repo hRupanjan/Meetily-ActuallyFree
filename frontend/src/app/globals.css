@@ -233,6 +233,9 @@
 
   --af-accent: #2563eb;
   --af-accent-soft: #e7efff;
+  --af-accent-hover: #1d4ed8;
+  --af-success: #15803d;
+  --af-success-soft: #ecfdf3;
 
   --af-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
   --af-shadow-md: 0 2px 6px rgba(15, 23, 42, 0.10), 0 1px 2px rgba(15, 23, 42, 0.07);
@@ -262,6 +265,9 @@ html.dark {
 
   --af-accent: #4a8bff;
   --af-accent-soft: #16233d;
+  --af-accent-hover: #3b7ae8;
+  --af-success: #7ee2a8;
+  --af-success-soft: #12251a;
 
   /* Layered shadows read as depth; a single heavy blur reads as a smudge. */
   --af-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
@@ -272,19 +278,6 @@ html.dark {
 
 html, body { background-color: var(--af-bg); color: var(--af-text); }
 
-.dark .bg-white { background-color: var(--af-panel) !important; }
-.dark .bg-gray-50, .dark .bg-slate-50, .dark .bg-neutral-50 { background-color: var(--af-panel-2) !important; }
-.dark .bg-gray-100 { background-color: var(--af-panel-2) !important; }
-.dark .bg-gray-200 { background-color: var(--af-hover) !important; }
-
-.dark .text-black, .dark .text-gray-900, .dark .text-gray-800, .dark .text-gray-700 { color: var(--af-text) !important; }
-.dark .text-gray-600, .dark .text-gray-500 { color: var(--af-text-2) !important; }
-.dark .text-gray-400, .dark .text-gray-300 { color: var(--af-text-3) !important; }
-
-.dark .border, .dark .border-gray-100, .dark .border-gray-200, .dark .border-gray-300 { border-color: var(--af-border) !important; }
-
-.dark .hover\:bg-gray-50:hover, .dark .hover\:bg-gray-100:hover { background-color: var(--af-hover) !important; }
-.dark .hover\:bg-gray-200:hover { background-color: #2f4370 !important; }
 
 .dark input, .dark textarea, .dark select {
   background-color: var(--af-panel) !important;
@@ -317,45 +310,8 @@ html, body { background-color: var(--af-bg); color: var(--af-text); }
   border-color: transparent !important;
 }
 
-.dark .bg-blue-50 { background-color: #14284d !important; }
-.dark .bg-blue-100 { background-color: var(--af-panel-2) !important; }
-.dark .bg-blue-200, .dark .hover\:bg-blue-200:hover { background-color: var(--af-hover) !important; }
-.dark .hover\:bg-blue-100:hover { background-color: var(--af-hover) !important; }
-.dark .bg-gray-300, .dark .hover\:bg-gray-300:hover { background-color: var(--af-hover) !important; }
-.dark .text-blue-800 { color: #7aa2ff !important; }
 .dark .prose { color: var(--af-text) !important; }
 .dark .prose strong, .dark .prose h1, .dark .prose h2, .dark .prose h3 { color: var(--af-text) !important; }
-
-/* Graduated shadows. Previously every shadow class got the same heavy blur,
-   which flattened the hierarchy — a card and a modal looked equally lifted. */
-.dark .shadow-sm { box-shadow: var(--af-shadow-sm) !important; }
-.dark .shadow, .dark .shadow-md { box-shadow: var(--af-shadow-md) !important; }
-.dark .shadow-lg, .dark .shadow-xl, .dark .shadow-2xl { box-shadow: var(--af-shadow-lg) !important; }
-
-/* Gradient "pill" buttons (Generate/Regenerate/Enhance/Stop) use light gradient
-   stops that stay bright in dark mode — flatten them to a readable dark button. */
-.dark [class*="from-blue-50"],
-.dark [class*="from-purple-50"],
-.dark [class*="from-red-50"],
-.dark [class*="from-orange-50"],
-.dark [class*="from-green-50"],
-.dark [class*="to-purple-50"],
-.dark [class*="to-orange-50"] {
-  background-image: none !important;
-  background-color: var(--af-panel-2) !important;
-  color: var(--af-text) !important;
-}
-.dark [class*="from-blue-50"]:hover,
-.dark [class*="from-red-50"]:hover,
-.dark [class*="from-purple-50"]:hover { background-color: var(--af-hover) !important; }
-.dark [class*="border-blue-200"],
-.dark [class*="border-red-200"],
-.dark [class*="border-purple-200"],
-.dark [class*="border-green-200"] { border-color: var(--af-border) !important; }
-
-/* Green "completed" banners readable on dark */
-.dark .bg-green-50 { background-color: #12251a !important; }
-.dark .text-green-800, .dark .text-green-700 { color: #7ee2a8 !important; }
 
 /* ============================================================
    Polish layer
@@ -368,35 +324,6 @@ html.dark {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-}
-
-/* Tighter tracking on large text. Default tracking is tuned for body copy and
-   makes headings look loose and amateurish at display sizes. */
-.dark h1, .dark h2, .dark h3,
-.dark .text-2xl, .dark .text-3xl, .dark .text-xl {
-  letter-spacing: -0.018em;
-}
-
-/* Softer, consistent corners. Tailwind's default rounded-lg (8px) reads sharp
-   next to modern desktop UI; card-level surfaces get a touch more. */
-.dark .rounded-lg { border-radius: var(--af-radius) !important; }
-.dark .rounded-md { border-radius: var(--af-radius-sm) !important; }
-
-/* Calm, uniform motion. Without this, some elements snap and others ease,
-   which is a large part of why an interface feels unfinished. */
-.dark button,
-.dark a,
-.dark [role="button"],
-.dark input,
-.dark textarea,
-.dark select,
-.dark [data-slot="input-group"] {
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease,
-    box-shadow 140ms ease,
-    opacity 140ms ease;
 }
 
 /* Focus: a soft accent ring instead of the browser's hard outline. Visible for
@@ -480,19 +407,3 @@ html.dark.minibar-window body {
   background-color: rgba(74, 139, 255, 0.28);
   color: var(--af-text);
 }
-
-/* Dividers should separate, not partition. */
-.dark hr,
-.dark .border-t, .dark .border-b, .dark .border-l, .dark .border-r {
-  border-color: var(--af-border) !important;
-}
-
-/* Accent surfaces: keep informational panels tinted rather than grey, so
-   "selected" and "info" states remain legible without shouting. */
-.dark .bg-blue-50 { background-color: var(--af-accent-soft) !important; }
-.dark .text-blue-600, .dark .text-blue-500 { color: var(--af-accent) !important; }
-
-/* Primary actions keep their colour — flattening every gradient earlier left
-   the UI with no visual anchor for the main action on a screen. */
-.dark .bg-blue-600 { background-color: var(--af-accent) !important; }
-.dark .bg-blue-600:hover, .dark .hover\:bg-blue-700:hover { background-color: #3b7ae8 !important; }

@@ -386,26 +386,26 @@ export function DownloadProgressStep() {
     modelSize: string,
     sizeUnit = 'MB'
   ) => (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-surface rounded-xl border border-border p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center">
             {icon}
           </div>
               <div>
-                <h3 className="font-medium text-gray-900">Step {step}: {title}</h3>
+                <h3 className="font-medium text-content">Step {step}: {title}</h3>
                 <p className="mt-0.5 text-xs font-medium text-blue-400">{modelName}</p>
-                <p className="text-sm text-gray-500">{modelSize}</p>
+                <p className="text-sm text-content-muted">{modelSize}</p>
           </div>
         </div>
         <div>
           {state.status === 'waiting' && (
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-content-muted">
               {step === 2 ? 'Waiting for Step 1' : 'Waiting...'}
             </span>
           )}
           {state.status === 'downloading' && (
-            <Loader2 className="w-5 h-5 text-gray-700 animate-spin" />
+            <Loader2 className="w-5 h-5 text-content animate-spin" />
           )}
           {state.status === 'completed' && (
             <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
@@ -421,23 +421,23 @@ export function DownloadProgressStep() {
       {/* Progress Bar */}
       {state.status === 'downloading' && (
         <div className="space-y-2">
-          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-surface-hover rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-gray-700 to-gray-900 rounded-full transition-all duration-300"
               style={{ width: `${state.progress}%` }}
             />
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">
+            <span className="text-content-muted">
               {state.downloadedMb.toFixed(1)} {sizeUnit} / {state.totalMb.toFixed(1)} {sizeUnit}
             </span>
             <div className="flex items-center gap-2">
               {state.speedMbps > 0 && (
-                <span className="text-gray-500">
+                <span className="text-content-muted">
                   {state.speedMbps.toFixed(1)} {sizeUnit}/s
                 </span>
               )}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-content">
                 {Math.round(state.progress)}%
               </span>
             </div>
@@ -446,7 +446,7 @@ export function DownloadProgressStep() {
       )}
 
       {state.status === 'error' && state.error && (
-        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+        <div className="mt-2 p-3 bg-red-50 border border-border rounded-md">
           <p className="text-sm text-red-600 font-medium">Download Error</p>
           <p className="text-xs text-red-500 mt-1">{state.error}</p>
           {(title === 'Transcription Engine' || title === 'Summary Engine') && (
@@ -480,7 +480,7 @@ export function DownloadProgressStep() {
             1,
             'Transcription Engine',
             PARAKEET_MODEL,
-            <Mic className="w-5 h-5 text-gray-600" />,
+            <Mic className="w-5 h-5 text-content-muted" />,
             parakeetState,
             '~670 MB'
           )}
@@ -489,7 +489,7 @@ export function DownloadProgressStep() {
             2,
             'Summary Engine',
             selectedSummaryModel || recommendedSummaryModel || 'Selecting recommended model...',
-            <Sparkles className="w-5 h-5 text-gray-600" />,
+            <Sparkles className="w-5 h-5 text-content-muted" />,
             summaryState,
             getSummaryModelSizeLabel(selectedSummaryModel || recommendedSummaryModel),
             'MiB'
@@ -504,13 +504,13 @@ export function DownloadProgressStep() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="w-full max-w-lg bg-gray-100 rounded-lg p-4 text-sm text-gray-800"
+              className="w-full max-w-lg bg-surface-2 rounded-lg p-4 text-sm text-content"
             >
               <div className="flex items-start gap-3">
-                <Download className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                <Download className="w-5 h-5 text-content-muted flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium">You can continue while this finishes</p>
-                  <p className="text-gray-700 mt-1">
+                  <p className="text-content mt-1">
                     Download will continue in the background.
                   </p>
                 </div>

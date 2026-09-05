@@ -33,19 +33,19 @@ export function AboutSettings() {
   return (
     <div className="space-y-6">
       {/* Identity card */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+      <div className="bg-surface rounded-lg border border-border p-6 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white text-2xl font-bold shadow-sm">
             M
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-gray-900">Meetily · Actually Free</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="text-xl font-semibold text-content">Meetily · Actually Free</h3>
+            <p className="text-sm text-content-muted">
               Version {version} · Privacy-first, on-device meeting assistant
             </p>
           </div>
         </div>
-        <p className="mt-4 text-sm text-gray-600 leading-relaxed">
+        <p className="mt-4 text-sm text-content-muted leading-relaxed">
           A free, open fork of Meetily that unlocks every feature for everyone. It captures,
           transcribes and summarizes your meetings entirely on your own machine — with GPU
           acceleration, bring-your-own-key cloud models, and local-first data ownership.
@@ -54,49 +54,49 @@ export function AboutSettings() {
 
       {/* Highlights */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-          <Cpu className="w-5 h-5 text-blue-500 mb-2" />
-          <div className="text-sm font-medium text-gray-900">On-device</div>
-          <div className="text-xs text-gray-500">Local transcription &amp; summaries</div>
+        <div className="bg-surface rounded-lg border border-border p-4 shadow-sm">
+          <Cpu className="w-5 h-5 text-brand mb-2" />
+          <div className="text-sm font-medium text-content">On-device</div>
+          <div className="text-xs text-content-muted">Local transcription &amp; summaries</div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+        <div className="bg-surface rounded-lg border border-border p-4 shadow-sm">
           <Shield className="w-5 h-5 text-green-500 mb-2" />
-          <div className="text-sm font-medium text-gray-900">Private</div>
-          <div className="text-xs text-gray-500">No telemetry, nothing leaves your PC</div>
+          <div className="text-sm font-medium text-content">Private</div>
+          <div className="text-xs text-content-muted">No telemetry, nothing leaves your PC</div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+        <div className="bg-surface rounded-lg border border-border p-4 shadow-sm">
           <Heart className="w-5 h-5 text-pink-500 mb-2" />
-          <div className="text-sm font-medium text-gray-900">Actually free</div>
-          <div className="text-xs text-gray-500">Every feature, no paywall</div>
+          <div className="text-sm font-medium text-content">Actually free</div>
+          <div className="text-xs text-content-muted">Every feature, no paywall</div>
         </div>
       </div>
 
       {/* Links */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm space-y-3">
-        <h4 className="text-sm font-semibold text-gray-900">Links</h4>
+      <div className="bg-surface rounded-lg border border-border p-6 shadow-sm space-y-3">
+        <h4 className="text-sm font-semibold text-content">Links</h4>
         <button
           onClick={() => openUrl(REPO_URL)}
-          className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+          className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md border border-border hover:border-blue-400 hover:bg-brand-soft transition-colors"
         >
-          <Github className="w-4 h-4 text-gray-700" />
-          <span className="text-sm text-gray-800">Source code on GitHub</span>
+          <Github className="w-4 h-4 text-content" />
+          <span className="text-sm text-content">Source code on GitHub</span>
         </button>
         <button
           onClick={() => openUrl(`${REPO_URL}/blob/main/PRIVACY_POLICY.md`)}
-          className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+          className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md border border-border hover:border-blue-400 hover:bg-brand-soft transition-colors"
         >
-          <Shield className="w-4 h-4 text-gray-700" />
-          <span className="text-sm text-gray-800">Privacy policy</span>
+          <Shield className="w-4 h-4 text-content" />
+          <span className="text-sm text-content">Privacy policy</span>
         </button>
       </div>
 
-      <div className="text-center text-xs text-gray-400 space-y-1">
+      <div className="text-center text-xs text-content-subtle space-y-1">
         <p>
           Built on the{" "}
           <button
             type="button"
             onClick={() => openUrl(ORIGINAL_MEETILY_URL)}
-            className="text-blue-500 hover:underline"
+            className="text-brand hover:underline"
           >
             open-source Meetily project
           </button>{" "}
@@ -106,7 +106,7 @@ export function AboutSettings() {
           <button
             type="button"
             onClick={() => openUrl(AUTHOR_URL)}
-            className="text-blue-500 hover:underline"
+            className="text-brand hover:underline"
           >
             Meetily - Actually Free fork by Tyler Buza
           </button>

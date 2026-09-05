@@ -487,27 +487,27 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                     <Mic size={16} />
                   </button>
 
-                  <div className="w-px h-6 bg-gray-200 mx-1" />
+                  <div className="w-px h-6 bg-surface-hover mx-1" />
 
                   <div className="flex items-center space-x-1 mx-2">
-                    <div className="text-sm text-gray-600 min-w-[40px]">
+                    <div className="text-sm text-gray-400 min-w-[40px]">
                       {formatTime(currentTime)}
                     </div>
                     <div
-                      className="relative w-24 h-1 bg-gray-200 rounded-full"
+                      className="relative w-24 h-1 bg-surface-hover rounded-full"
                     >
                       <div
                         className="absolute h-full bg-blue-500 rounded-full"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <div className="text-sm text-gray-600 min-w-[40px]">
+                    <div className="text-sm text-gray-400 min-w-[40px]">
                       {formatTime(duration)}
                     </div>
                   </div>
 
                   <button
-                    className="w-10 h-10 flex items-center justify-center bg-gray-300 rounded-full text-white cursor-not-allowed"
+                    className="w-10 h-10 flex items-center justify-center bg-surface-hover rounded-full text-white cursor-not-allowed"
                     disabled
                   >
                     <Play size={16} />
@@ -714,7 +714,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                                   setShowCompactTip(false);
                                   collapseToBar();
                                 }}
-                                className="mt-3 w-full rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-900 transition-colors hover:bg-gray-100"
+                                className="mt-3 w-full rounded-lg bg-surface px-3 py-1.5 text-xs font-semibold text-content transition-colors hover:bg-surface-hover"
                               >
                                 Shrink to bar
                               </button>
@@ -748,7 +748,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
 
         {/* Show validation status only */}
         {isValidatingModel && (
-          <div className="text-xs text-gray-600 text-center mt-2">
+          <div className="text-xs text-content-muted text-center mt-2">
             Validating speech recognition...
           </div>
         )}

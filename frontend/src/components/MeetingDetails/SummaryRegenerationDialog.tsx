@@ -54,7 +54,7 @@ export function SummaryRegenerationDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles size={18} className="text-blue-500" />
+            <Sparkles size={18} className="text-brand" />
             {speakerNamesChanged ? 'Update summary with speaker names?' : 'Regenerate summary'}
           </DialogTitle>
           <DialogDescription>

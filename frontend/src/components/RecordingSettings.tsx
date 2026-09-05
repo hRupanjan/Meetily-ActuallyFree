@@ -197,8 +197,8 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
   if (loading) {
     return (
       <div className="animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-        <div className="h-8 bg-gray-200 rounded mb-4"></div>
+        <div className="h-4 bg-surface-hover rounded w-1/4 mb-4"></div>
+        <div className="h-8 bg-surface-hover rounded mb-4"></div>
       </div>
     );
   }
@@ -207,7 +207,7 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
     <div className="min-w-0 max-w-full space-y-6">
       <div className="min-w-0">
         <h3 className="mb-4 text-lg font-semibold">Recording Settings</h3>
-        <p className="mb-6 text-sm text-gray-600">
+        <p className="mb-6 text-sm text-content-muted">
           Configure how your audio recordings are saved during meetings.
         </p>
       </div>
@@ -216,7 +216,7 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
       <div className="flex min-w-0 items-start justify-between gap-3 rounded-lg border p-4 sm:items-center">
         <div className="min-w-0 flex-1">
           <div className="font-medium">Save Audio Recordings</div>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-content-muted">
             Automatically save audio files when recording stops
           </div>
         </div>
@@ -233,7 +233,7 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="font-medium">Microphone gain</div>
-            <div className="text-sm text-gray-600 break-words">
+            <div className="text-sm text-content-muted break-words">
               Boost your voice if it sounds quiet next to system audio (0.5×–3×)
             </div>
           </div>
@@ -257,11 +257,11 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
           onBlur={(e) => void handleMicGainChange(parseFloat(e.target.value))}
           className="w-full min-w-0 max-w-full accent-[var(--af-accent,#4a8bff)]"
         />
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-content-muted">
           <span>Quieter</span>
           <button
             type="button"
-            className="underline hover:text-gray-800"
+            className="underline hover:text-content"
             disabled={saving}
             onClick={() => void handleMicGainChange(1)}
           >
@@ -276,7 +276,7 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="font-medium">System audio gain</div>
-            <div className="text-sm text-gray-600 break-words">
+            <div className="text-sm text-content-muted break-words">
               Balance other participants and computer audio (0.5×–3×)
             </div>
           </div>
@@ -300,11 +300,11 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
           onBlur={(e) => void handleSystemGainChange(parseFloat(e.target.value))}
           className="w-full min-w-0 max-w-full accent-[var(--af-accent,#4a8bff)]"
         />
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-content-muted">
           <span>Quieter</span>
           <button
             type="button"
-            className="underline hover:text-gray-800"
+            className="underline hover:text-content"
             disabled={saving}
             onClick={() => void handleSystemGainChange(1)}
           >
@@ -320,16 +320,16 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
       {/* Folder Location - Only shown when auto_save is enabled */}
       {preferences.auto_save && (
         <div className="min-w-0 space-y-4">
-          <div className="min-w-0 rounded-lg border bg-gray-50 p-4">
+          <div className="min-w-0 rounded-lg border border-border bg-surface-2 p-4">
             <div className="mb-2 font-medium">Save Location</div>
-            <div className="mb-3 break-all text-sm text-gray-600">
+            <div className="mb-3 break-all text-sm text-content-muted">
               {preferences.save_folder || 'Default folder'}
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleChangeFolder}
                 disabled={isChoosingFolder || saving}
-                className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-md hover:bg-surface-hover transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <FolderCog className="w-4 h-4" />
                 {isChoosingFolder ? 'Choosing...' : 'Change Folder'}
@@ -337,7 +337,7 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
               <button
                 onClick={handleOpenFolder}
                 disabled={isChoosingFolder}
-                className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-md hover:bg-surface-hover transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <FolderOpen className="w-4 h-4" />
                 Open Folder
@@ -345,11 +345,11 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
             </div>
           </div>
 
-          <div className="p-4 border rounded-lg bg-blue-50">
-            <div className="text-sm text-blue-800">
+          <div className="p-4 border border-border rounded-lg bg-brand-soft">
+            <div className="text-sm text-brand">
               <strong>File Format:</strong> {preferences.file_format.toUpperCase()} files
             </div>
-            <div className="text-xs text-blue-600 mt-1">
+            <div className="text-xs text-brand mt-1">
               Recordings are saved with timestamp: recording_YYYYMMDD_HHMMSS.{preferences.file_format}
             </div>
           </div>
@@ -368,12 +368,12 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
       {/* Device Preferences */}
       <div className="space-y-4">
         <div className="border-t pt-6">
-          <h4 className="text-base font-medium text-gray-900 mb-4">Default Audio Devices</h4>
-          <p className="text-sm text-gray-600 mb-4">
+          <h4 className="text-base font-medium text-content mb-4">Default Audio Devices</h4>
+          <p className="text-sm text-content-muted mb-4">
             Set your preferred microphone and system audio devices for recording. These will be automatically selected when starting new recordings.
           </p>
 
-          <div className="border rounded-lg p-4 bg-gray-50">
+          <div className="border border-border rounded-lg p-4 bg-surface-2">
             <DeviceSelection
               selectedDevices={{
                 micDevice: preferences.preferred_mic_device,

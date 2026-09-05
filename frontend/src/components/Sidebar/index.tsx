@@ -550,10 +550,10 @@ const Sidebar: React.FC = () => {
                     if (isCollapsed) toggleCollapse();
                     toggleFolder('meetings');
                   }}
-                  className={`p-2 rounded-lg transition-colors duration-150 ${isMeetingPage ? 'bg-gray-100' : 'hover:bg-gray-100'
+                  className={`p-2 rounded-lg transition-colors duration-150 ${isMeetingPage ? 'bg-surface-2' : 'hover:bg-surface-hover'
                     }`}
                 >
-                  <NotebookPen className="w-5 h-5 text-gray-600" />
+                  <NotebookPen className="w-5 h-5 text-content-muted" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">
@@ -567,9 +567,9 @@ const Sidebar: React.FC = () => {
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => openImportDialog()}
-                    className="p-2 rounded-lg transition-colors duration-150 hover:bg-blue-100 bg-blue-50"
+                    className="p-2 rounded-lg transition-colors duration-150 hover:bg-surface-hover bg-brand-soft"
                   >
-                    <Upload className="w-5 h-5 text-blue-600" />
+                    <Upload className="w-5 h-5 text-brand" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -585,10 +585,10 @@ const Sidebar: React.FC = () => {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => router.push('/settings')}
-                  className={`p-2 rounded-lg transition-colors duration-150 ${isSettingsPage ? 'bg-gray-100' : 'hover:bg-gray-100'
+                  className={`p-2 rounded-lg transition-colors duration-150 ${isSettingsPage ? 'bg-surface-2' : 'hover:bg-surface-hover'
                     }`}
                 >
-                  <Settings className="w-5 h-5 text-gray-600" />
+                  <Settings className="w-5 h-5 text-content-muted" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">
@@ -651,9 +651,9 @@ const Sidebar: React.FC = () => {
               <span className={depth === 0 ? "" : "font-medium"}>{item.title}</span>
               <div className="ml-auto">
                 {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                  <ChevronDown className="w-4 h-4 text-content-muted" />
                 ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                  <ChevronRight className="w-4 h-4 text-content-muted" />
                 )}
               </div>
             </>
@@ -668,7 +668,7 @@ const Sidebar: React.FC = () => {
                       {isActive ? <AudioLines className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
                     </span>
                   ) : (
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-blue-100 text-blue-600">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand-soft text-brand">
                       <Plus className="h-3 w-3" />
                     </span>
                   )}
@@ -743,7 +743,7 @@ const Sidebar: React.FC = () => {
       </button>
 
       <div
-        className={`h-screen bg-white border-r shadow-sm flex flex-col transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'
+        className={`h-screen bg-surface border-r shadow-sm flex flex-col transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'
           }`}
       >
         {/* Header: brand, search, New Recording */}
@@ -805,10 +805,10 @@ const Sidebar: React.FC = () => {
 
             {/* Bulk-selection action bar */}
             {!isCollapsed && selectedIds.size > 0 && (
-              <div className="mx-3 mb-1 flex items-center justify-between rounded-md bg-blue-50 px-3 py-2 text-sm">
-                <span className="font-medium text-blue-700">{selectedIds.size} selected</span>
+              <div className="mx-3 mb-1 flex items-center justify-between rounded-md bg-brand-soft px-3 py-2 text-sm">
+                <span className="font-medium text-brand">{selectedIds.size} selected</span>
                 <div className="flex items-center gap-2">
-                  <button onClick={clearSelection} className="text-gray-500 hover:text-gray-700">Clear</button>
+                  <button onClick={clearSelection} className="text-content-muted hover:text-content">Clear</button>
                   <button
                     onClick={() => setBulkDeleteOpen(true)}
                     className="inline-flex items-center gap-1 rounded-md bg-red-500 px-2 py-1 font-medium text-white hover:bg-red-600"
@@ -900,7 +900,7 @@ const Sidebar: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Edit Meeting Title</h3>
             <div className="space-y-4">
               <div>
-                <label htmlFor="meeting-title" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="meeting-title" className="block text-sm font-medium text-content mb-2">
                   Meeting Title
                 </label>
                 <input
@@ -915,7 +915,7 @@ const Sidebar: React.FC = () => {
                       handleEditCancel();
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter meeting title"
                   autoFocus
                 />
@@ -925,13 +925,13 @@ const Sidebar: React.FC = () => {
           <DialogFooter>
             <button
               onClick={handleEditCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-content bg-surface-2 hover:bg-surface-hover rounded-md transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleEditConfirm}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md transition-colors"
             >
               Save
             </button>

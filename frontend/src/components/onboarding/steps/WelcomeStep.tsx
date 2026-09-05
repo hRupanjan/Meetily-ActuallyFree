@@ -53,33 +53,33 @@ export function WelcomeStep() {
     >
       <div className="flex flex-col items-center space-y-6">
         {/* Divider */}
-        <div className="w-16 h-px bg-gray-300" />
+        <div className="w-16 h-px bg-surface-hover" />
 
         {/* Features Card */}
-        <div className="w-full max-w-md bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-4">
+        <div className="w-full max-w-md bg-surface rounded-lg border border-border shadow-sm p-6 space-y-4">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
               <div key={index} className="flex items-start gap-3">
                 <div className="flex-shrink-0 mt-0.5">
-                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
-                    <Icon className="w-3 h-3 text-gray-700" />
+                  <div className="w-5 h-5 rounded-full bg-surface-2 flex items-center justify-center">
+                    <Icon className="w-3 h-3 text-content" />
                   </div>
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed">{feature.title}</p>
+                <p className="text-sm text-content leading-relaxed">{feature.title}</p>
               </div>
             );
           })}
         </div>
 
-        {updatesSupported && <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        {updatesSupported && <div className="w-full max-w-md rounded-lg border border-border bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-start gap-3">
-            <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-100">
-              <RefreshCw className="h-3.5 w-3.5 text-gray-700" />
+            <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-surface-2">
+              <RefreshCw className="h-3.5 w-3.5 text-content" />
             </div>
             <div>
-              <h2 className="text-sm font-medium text-gray-900">Check for updates when Meetily starts?</h2>
-              <p className="mt-1 text-xs leading-relaxed text-gray-500">
+              <h2 className="text-sm font-medium text-content">Check for updates when Meetily starts?</h2>
+              <p className="mt-1 text-xs leading-relaxed text-content-muted">
                 This checks this fork&apos;s GitHub releases. No analytics or usage data is sent.
               </p>
             </div>
@@ -92,7 +92,7 @@ export function WelcomeStep() {
               className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
                 checkUpdates === true
                   ? 'border-gray-900 bg-gray-900 text-white'
-                  : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                  : 'border-border text-content hover:border-gray-400'
               }`}
             >
               Yes, check on launch
@@ -104,7 +104,7 @@ export function WelcomeStep() {
               className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
                 checkUpdates === false
                   ? 'border-gray-900 bg-gray-900 text-white'
-                  : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                  : 'border-border text-content hover:border-gray-400'
               }`}
             >
               No, I&apos;ll check manually
@@ -123,7 +123,7 @@ export function WelcomeStep() {
               {saving ? 'Saving…' : 'Get Started'}
             </Button>
           )}
-          <p className="text-xs text-center text-gray-500">Takes less than 3 minutes</p>
+          <p className="text-xs text-center text-content-muted">Takes less than 3 minutes</p>
         </div>
       </div>
     </OnboardingContainer>

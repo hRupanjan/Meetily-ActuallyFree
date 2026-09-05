@@ -251,7 +251,7 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
         <div className="space-y-6 pb-6">
             <section className="space-y-4 rounded-xl border border-[var(--af-border)] bg-[var(--af-panel-2)] p-4 text-[var(--af-text)] sm:p-5">
                 <div className="flex items-start gap-3">
-                    <Radio className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
+                    <Radio className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
                     <div className="min-w-0 flex-1">
                         <h3 className="font-semibold">Live transcription</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
@@ -525,7 +525,7 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
 
             <section className={`space-y-3 rounded-xl border border-[var(--af-border)] bg-[var(--af-panel-2)] p-4 text-[var(--af-text)] ${whisperIsActive ? '' : 'opacity-60'}`}>
                 <div className="flex items-start gap-3">
-                    <BookOpen className={`mt-0.5 h-4 w-4 shrink-0 ${whisperIsActive ? 'text-blue-500' : 'text-muted-foreground'}`} />
+                    <BookOpen className={`mt-0.5 h-4 w-4 shrink-0 ${whisperIsActive ? 'text-brand' : 'text-muted-foreground'}`} />
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                             <Label htmlFor="whisper-vocabulary" className="text-sm font-medium">Global vocabulary hints</Label>

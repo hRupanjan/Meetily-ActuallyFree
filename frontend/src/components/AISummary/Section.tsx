@@ -75,7 +75,7 @@ export const Section: React.FC<SectionProps> = ({
         {onSectionDelete && (
           <button
             onClick={() => onSectionDelete(sectionKey)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-content-subtle hover:text-content-muted"
           >
             Delete
           </button>
