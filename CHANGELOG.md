@@ -1,5 +1,315 @@
 # Changelog
 
+## Unreleased
+
+- Preserve combined speaker labels in display, export, and component-level renames (#44/#45; from #38).
+- Own post-call processing above navigation, skip enhancement/diarization when
+  keeping the live transcript, and scope cancellation to the active meeting (#31/#35).
+- Add Markdown frontmatter and optional Obsidian speaker links (#27).
+- Apply configured vocabulary hints to Parakeet live/import/post-call transcription (#10).
+- Add opt-in Linux source-build ROCm helper mapping and SDK discovery (#8; AMD hardware validation pending).
+- Distinguish macOS system-tap inactivity/end errors from a closed processing channel (#42 diagnostics).
+
+## v0.2.20 — Windows recording reliability and setup improvements
+
+See [release notes](docs/RELEASE_V0220.md) for the complete update and test limits.
+
+- Correct shared-mixer premature silence padding and queued-sample loss (#42).
+- Move Windows microphone DSP onto the bounded capture worker; preserve driver
+  capture timestamps, queued mute state, and explicit Stop/drain ownership.
+- Hide FFmpeg's Windows console during waveform extraction (#43).
+- Stack meeting panes by available content width and support keyboard resizing (#25).
+- Bundle Inter locally so production builds do not fetch Google fonts.
+- Show a recording disclosure and consent notice after setup on each launch,
+  with an optional permanent acknowledgement to stop showing it.
+- Show optional Whisper and Nemotron downloads in the top-right background
+  stack and their Transcription settings cards, including activation progress.
+- Keep speaker-model Active badges inside their cards on smaller windows.
+- Complete optional Whisper activation natively, preserving the live model even
+  when another model manager is open or the WebView reloads.
+- Add Uninstall to optional-model Settings, removing the selected model's files
+  and resetting only preferences that use it.
+
+## v0.2.18
+
+Released **v0.2.18**; see [release notes and complete contributor
+credits](docs/RELEASE_V0218.md). The workspace redesign is from **@jayjoe101's
+PR #39**, including **@ampersandru's PRs #36–#38** and **@cedstrom's PR #28**
+(original commit attribution: **@chris-edstrom**). Thanks to **@fernandog** for
+the detailed issue #40 recording-artifact report and analysis.
+
+### Recording and post-call corrections
+
+- Preserve continuous microphone/system samples across jittered capture callback
+  boundaries instead of repeatedly inserting zeros or dropping samples (#40).
+  Applies to new recordings; older damaged files are not repaired.
+- Retain speech-start pre-roll and correct VAD reset timestamps; increase live
+  system-audio speech sensitivity and preserve quiet speech/short replies.
+- Restore AI-generated titles for automatically named meetings while respecting
+  manual names and rejecting template placeholders.
+- Use a compact centered **Auto-detect & continue** action for Nemotron; show
+  ongoing processing in a nonmodal bottom card so the meeting stays interactive.
+- Restore the original text-only blue wordmark, add a system **Low audio**
+  advisory, and improve capture startup, setup gating, and live speaker-edit recovery.
+
+### Interface overhaul and workspace
+
+- Three themes (Midnight, Vanilla and Charcoal) built on shared colour tokens, one
+  component kit across every screen, and on Windows a title bar drawn inside the app
+  with its own window buttons. Icons make a small, meaningful motion on hover.
+- A home screen around the record card, with what is up next and open action items.
+  During a call: an editable title, the group, people heard so far, the live
+  transcript and a Speakers | Notes | Ask AI panel. The rest of the app stays usable
+  while recording.
+- A rebuilt meeting page: one row of people, a chat-style transcript with playback,
+  and one document with your notes, action items and the editable summary.
+- Groups (schedules, open items across meetings, Ask AI), contacts and person pages,
+  and action items stored as records with owners, due dates and source moments.
+- A Ctrl+K command bar that searches people, groups, meetings, transcripts, summaries
+  and action items; an All meetings page; and export of any number of meetings to
+  PDF, Word, Markdown, text or JSON.
+- Contacts are kept when a speaker's lines are unlinked; only deleting or merging
+  removes them. Useful summary-generated titles replace automatic meeting names;
+  manual meeting titles remain authoritative.
+- Each person is drawn in their contact colour across the transcript, with a faint
+  tint on their chat bubbles, so it is easy to see who is talking.
+
+### Claude Code CLI summaries
+
+Thanks to **[@cedstrom](https://github.com/cedstrom)** for
+[PR #28](https://github.com/TylerBuza/Meetily-ActuallyFree/pull/28), which provides
+this provider.
+
+- Add a **Claude Code CLI** summary provider. Summaries and the live assistant can
+  now run through the `claude` command installed on your computer, so they draw on
+  a Claude subscription instead of a pay-as-you-go API key. Model Settings detects
+  the executable, shows the signed-in account and plan, warns when
+  `ANTHROPIC_API_KEY` would override the subscription, and can send a test call.
+  Nothing is bundled and no key is stored — the CLI owns sign-in.
+- Runs on current Claude Code releases. The system prompt is passed as a file rather
+  than on the command line, and a signed-out or outdated CLI reports the step to take.
+
+### Per-app recording and Labs
+
+Thanks to **[@ampersandru](https://github.com/ampersandru)** for
+[PR #38](https://github.com/TylerBuza/Meetily-ActuallyFree/pull/38) (which also brings
+their PRs #36 and #37), which provides these features. They are built into the
+interface above.
+
+- **Record only the apps you choose.** On Windows and macOS, computer audio can come
+  from just the chosen apps, such as the call without music or notification sounds,
+  instead of everything the computer plays. Choose in Settings > Recording or in the
+  record card's system audio panel; each app shows whether it is open and playing
+  sound.
+- **Labs**, a new Settings section of experimental features. Each stays off until you
+  turn it on, and each also appears where it is used:
+  - Meeting automation records a detected call once it uses your microphone or
+    camera, and stops and saves when the call ends. Recordings you start yourself
+    are never stopped. Also in Meeting detection.
+  - Waveform scrubbing shows the recording's waveform in the meeting player and adds
+    0.5× and 0.75× speeds.
+  - Clean transcript adds a Clean/Verbatim switch to the meeting player and writes
+    new summaries from the clean text. The saved transcript stays word for word.
+  - Whisper silence guard filters silence and noise more strictly when Whisper
+    transcribes.
+  - Parakeet on the GPU runs Parakeet's encoder through DirectML on Windows.
+  - Voice profiles learn a contact's voice from their recorded meetings, and later
+    meetings name a matching voice. Update voice on a contact's page relearns it from
+    all their recent meetings, and the speaker card adds one meeting's audio. Renaming,
+    merging or deleting a contact updates or removes their voice.
+- Unnamed voices keep distinct colours in a meeting, and keep them when renamed.
+
+## 0.2.17 - 2026-09-25
+
+### Nemotron speaker diarization
+
+Thanks to **[@ampersandru](https://github.com/ampersandru)** for
+[PR #34](https://github.com/TylerBuza/Meetily-ActuallyFree/pull/34), which provided
+the starting point for this integration. This release adapts and hardens that
+contribution and adds the live streaming path. Credit also goes to Enes Altun's
+MIT-licensed `parakeet-rs` Sortformer implementation.
+
+- Use the selected Nemotron engine for live remote-speaker labels as well as
+  post-call refinement. Continuous 16 kHz audio is processed on a dedicated
+  streaming worker; microphone audio remains You. Engine changes apply to the
+  next recording, and inference failures visibly retain source-only labels.
+- Save Nemotron's automatic selection inside the native download task so setup
+  WebView reloads cannot lose activation. Open Settings and speaker dialogs
+  refresh when the native task enables Nemotron.
+- Automatically enable optional Nemotron after a successful download. Optional
+  Whisper becomes the post-call enhancement/retranscription default; live
+  transcription remains unchanged.
+- Mark both optional setup choices Recommended. Already-installed models can be
+  enabled without another download, and activation failures offer a retry.
+- Refresh open Settings panels after automatic activation.
+
+- Offer optional Whisper Large v3 Turbo Q5 and Nemotron downloads during setup.
+  Download jobs are owned by the app, so navigating away or finishing onboarding
+  does not stop them. Settings shows progress, completion, errors, and retry controls.
+- Allow continuing setup while Parakeet and other models download. Recording still
+  requires the transcription engine to be ready; finishing setup no longer marks
+  unfinished models as downloaded.
+
+- Fix a Windows stack-overflow crash when invoking diarization model downloads:
+  checksum buffers now live on the heap instead of inside nested async futures.
+- Make Nemotron Auto-detect-only in both speaker dialogs and backend dispatch;
+  stale manual counts no longer silently select Pyannote. Manual speaker counts
+  remain available when Pyannote is selected.
+- Explain live and post-call engine selection, including next-recording behavior
+  when the engine is changed during a call.
+
+- Add optional NVIDIA Nemotron-3 post-call speaker Auto-detect, adapted from
+  @ampersandru's PR #34. Live labels use the bundled Pyannote/WeSpeaker engine;
+  manual speaker counts are offered only when Pyannote is selected.
+- Preserve transcript text, row IDs, and timing across diarization reruns;
+  speaker-label updates remain transactional. Sentence splitting requires
+  actual word alignment and is not inferred from text length.
+- Preserve overlapping speaker activity and avoid guessing the local user's
+  identity from speaking duration. Separate mic/system tracks remain authoritative.
+- Pin the optional ONNX export and license by revision, exact length and SHA-256;
+  use model-specific native feature extraction and speaker-aware cache retention.
+- Add Windows DirectML acceleration for Nemotron with CPU fallback, using a pinned
+  shared ONNX Runtime and DirectML redistributable. VAD and Parakeet retain CPU execution.
+- Retain the crash-report startup gate and full release
+  CUDA architecture set. Credit Enes Altun/parakeet-rs for the MIT-licensed
+  Sortformer reference implementation.
+
+## 0.2.16 - 2026-09-18
+
+### Selective Upstream Integration
+
+This update selectively incorporates improvements from
+[upstream Meetily v0.4.1](https://github.com/Zackriya-Solutions/meetily/releases/tag/v0.4.1)
+into Meetily - Actually Free. Many of the fixes in that release were already
+implemented or addressed independently in our build, so we brought over the
+remaining applicable improvements and adapted them to our fork's architecture.
+We retained our existing solutions where they already covered the same issues;
+this is a selective integration rather than a full upstream merge.
+
+Existing fixes we retained include Claude thinking-block handling, preservation
+of short transcript segments, responsive toolbar controls, and much of our
+model-download resume and file-retention protection.
+
+### Newly Incorporated Improvements
+
+- Preserve transcript coverage when splitting long summaries into chunks.
+- Correct HE-AAC import timing and repair stale duration metadata during
+  explicit retranscription.
+- Pass selected audio devices and meeting names correctly to native recording.
+- Restore summary progress after navigation and improve recording-control
+  positioning.
+- Bundle a pinned Windows ONNX Runtime shared by VAD, Parakeet, and diarization,
+  with recoverable startup errors before recording storage begins.
+- Add the missing download-recovery protections: rejected-range fallback,
+  stricter range validation, and safer cancellation/retry ownership.
+
+Thanks to the upstream contributors for these improvements. Individual PRs,
+attribution, fork-specific adaptations, and verification details are recorded in
+[the upstream integration notes](docs/UPSTREAM_0_4_1_PORTS.md).
+
+### Windows Qualification
+
+- Retains the full Windows runtime ownership crash fix from v0.2.14.
+- Passed 35 frontend and 70 targeted native tests, fresh CPU/Vulkan/CUDA builds,
+  updater signature and payload checks, and an extracted ONNX DLL load test.
+- Physical non-AVX2 hardware and real fresh-install/upgrade testing remain
+  unverified. Release qualification uses native regression tests and packaged
+  payload checks; this does not establish compatibility with every older CPU.
+- Manual downloads use the universal setup; in-app updates use the separate
+  Tauri-signed updater engine. Windows Authenticode remains unconfigured.
+- No macOS release or permission-probe changes are included.
+
+## 0.2.15 - 2026-09-17
+
+### Maintenance
+
+- Keep Export, Enhance, and other meeting toolbar actions accessible at narrow
+  panel widths, using responsive icon labels, wrapping, and keyboard tooltips (#25).
+- Make Claude summary output length configurable with a larger application
+  default, model-aware validation, explicit errors for truncated responses,
+  effective-budget cache invalidation, and an LF-pinned migration (#29).
+- Preserve unavailable audio-device preferences while allowing explicit Default
+  selection, and use the active theme for native form controls (#23).
+- Keep the runtime resource directory present in clean source checkouts (#7).
+- Add read-only frontend PR checks: unit tests, production build, and TypeScript.
+- Retain the full Windows runtime crash fix from v0.2.14; PR #30 is superseded.
+- PR #12 remains pending macOS revisions and qualification. No macOS release.
+
+### Contributors
+
+- Thanks to @mhlas7, @cedstrom, and @0cv for the maintenance contributions.
+
+### Windows Downloads
+
+- Fresh CPU, Vulkan, and multi-architecture CUDA builds.
+- Manual installation uses the universal setup; in-app updates use the separate
+  Tauri-signed updater engine and matching signature. Authenticode is not configured.
+
+## 0.2.14 - 2026-09-17
+
+### Windows Crash Fix
+
+- Correct Windows event-loop target ownership in a narrowly patched, vendored
+  Tauri runtime 2.11.4. This addresses the background reference-count race
+  associated with the reported long-recording crash.
+- Keep strong ownership and destruction on the event-loop thread, use private
+  atomic weak references in cloned contexts, and route runtime monitor queries
+  to the owning thread. Preserve teardown ordering during panic unwinding.
+- This release contains the crash fix and release metadata only, with no PR
+  feature merges or macOS release changes.
+
+### Validation
+
+- Nine native lifecycle scenarios cover thread-affine destruction, shutdown,
+  panic unwinding, monitor dispatch, and WebView2 traffic. The stress case sends
+  50,000 IPC messages through two WebViews while workers clone/drop five million
+  webview handles. Three compile-fail doctests cover ownership boundaries.
+- The reporting user said the patched test build worked fine so far. The trial
+  duration is unconfirmed; these results do not establish a completed multi-hour
+  recording/minibar soak or guarantee that all causes of crashes are resolved.
+
+### Windows Downloads
+
+- Fresh CPU, Vulkan, and CUDA variants; CUDA targets multiple GPU generations.
+- Use `Meetily-ActuallyFree-0.2.14-x64-universal-setup.exe` for manual installation.
+  In-app updates use the universal updater engine and its matching Tauri signature.
+- `latest.json` and `SHA256SUMS.txt` provide updater metadata and file checksums.
+  Windows Authenticode remains unconfigured; Tauri updater signing is separate.
+
+## 0.2.13 - 2026-09-06
+
+### Bug Fixes
+
+- Display complete multilingual summary Markdown with original headings, lists,
+  tables, and code blocks; custom sections and decisions no longer disappear (#17).
+- Allow dragging the compact recording bar from any non-button surface with a
+  minibar-scoped native permission, preserving native recording lifecycle (#24).
+- Import OGG Opus and Vorbis through the existing bundled FFmpeg conversion path;
+  temporary conversion files no longer require a writable source folder (#21).
+- Use the application accent for checked settings switches in both themes (#18).
+
+### Reliability
+
+- Surface persistent summary failures and retry controls, validate selected Ollama
+  models, and prevent cancelled preflight requests from starting generation.
+- Reject empty summaries and failed transcript chunks rather than silently
+  saving incomplete summaries.
+- Keep recoverable transcription failures non-terminal and preserve IndexedDB
+  recovery writes when listener closures predate meeting initialization.
+- Cancel updater downloads natively, isolate stale cancellation by request ID,
+  and guard the non-cancellable installation phase.
+- Match Windows audio devices exactly and warn about unavailable loopback capture
+  or possible Zoom speaker-route mismatches. Zoom warnings are heuristic: endpoint
+  sound cannot be attributed to a particular application.
+
+### Windows Packaging
+
+- Fresh CPU, Vulkan, and CUDA variants are required for this release.
+- The universal setup is for manual installation; the signed universal updater
+  engine and its matching signature remain the target of `latest.json`.
+- Windows Authenticode is not configured. The Tauri updater signature is separate
+  and remains required. No macOS release is included.
+
 ## 0.2.12 - 2026-08-30
 
 ### Meeting Details

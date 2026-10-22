@@ -354,7 +354,10 @@ pub async fn parakeet_validate_model_ready_with_config<R: tauri::Runtime>(
 }
 
 #[command]
-pub async fn parakeet_transcribe_audio(audio_data: Vec<f32>) -> Result<String, String> {
+pub async fn parakeet_transcribe_audio(
+    audio_data: Vec<f32>,
+    vocabulary: Option<String>,
+) -> Result<String, String> {
     let engine = {
         let guard = PARAKEET_ENGINE.lock().unwrap();
         guard.as_ref().cloned()
@@ -362,7 +365,7 @@ pub async fn parakeet_transcribe_audio(audio_data: Vec<f32>) -> Result<String, S
 
     if let Some(engine) = engine {
         engine
-            .transcribe_audio(audio_data)
+            .transcribe_audio(audio_data, vocabulary.as_deref())
             .await
             .map_err(|e| format!("Parakeet transcription failed: {}", e))
     } else {
@@ -499,7 +502,7 @@ pub async fn parakeet_cancel_download<R: Runtime>(
     };
 
     if let Some(engine) = engine {
-        engine
+        let cancellation = engine
             .cancel_download(&model_name)
             .await
             .map_err(|e| format!("Failed to cancel Parakeet download: {}", e))?;
@@ -508,19 +511,20 @@ pub async fn parakeet_cancel_download<R: Runtime>(
         // file and released ownership. This also makes an immediate retry safe.
         for _ in 0..700 {
             if engine.cancellation_completed(&model_name).await {
-                let _ = app_handle.emit(
+                let released = engine.release_cancelled_download(&model_name, &cancellation, || {
+                  let _ = app_handle.emit(
                     "parakeet-model-download-progress",
                     serde_json::json!({
                         "modelName": model_name,
                         "progress": 0,
                         "status": "cancelled"
                     }),
-                );
-                engine.release_cancelled_download(&model_name).await;
+                  );
+                }).await;
                 log::info!("Parakeet download cancelled: {}", model_name);
-                return Ok(true);
+                return Ok(released);
             }
-            if !engine.active_downloads.read().await.contains(&model_name) {
+            if !engine.download_is_current(&model_name, &cancellation).await {
                 log::info!("Parakeet download finished before cancellation: {}", model_name);
                 return Ok(false);
             }

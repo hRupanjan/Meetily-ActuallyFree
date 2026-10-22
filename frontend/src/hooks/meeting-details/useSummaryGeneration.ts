@@ -8,10 +8,35 @@ import Analytics from '@/lib/analytics';
 import { isOllamaNotInstalledError } from '@/lib/utils';
 import { BuiltInModelInfo } from '@/lib/builtin-ai';
 import {
+  CLAUDE_CODE_INSTALL_URL,
+  claudeCliBlockingReason,
+  getClaudeCliStatus,
+} from '@/lib/claude-cli';
+import {
   detectAndCacheSummaryLanguage,
   readMeetingSummaryLanguage,
   readCachedDetectedSummaryLanguage,
 } from '@/lib/summary-language-preferences';
+
+/**
+ * The Claude Code CLI provider depends on software outside this app, so it can
+ * be missing or signed out at any time. Checking up front turns that into an
+ * actionable message instead of a backend failure part-way through a summary.
+ *
+ * Returns null when summaries can run.
+ */
+async function claudeCliPreflight(): Promise<{ message: string; installed: boolean } | null> {
+  try {
+    const status = await getClaudeCliStatus();
+    const message = claudeCliBlockingReason(status);
+    return message ? { message, installed: status.installed } : null;
+  } catch (error) {
+    return {
+      message: error instanceof Error ? error.message : String(error),
+      installed: false,
+    };
+  }
+}
 
 async function resolveSummaryLanguage(
   meetingId: string,
@@ -49,6 +74,7 @@ async function resolveSummaryLanguage(
 }
 
 type SummaryStatus = 'idle' | 'processing' | 'summarizing' | 'regenerating' | 'completed' | 'error';
+let recoveryPollSequence = 0;
 
 interface UseSummaryGenerationProps {
   meeting: any;
@@ -59,6 +85,8 @@ interface UseSummaryGenerationProps {
   onMeetingUpdated?: () => Promise<void>;
   setAiSummary: (summary: Summary | null) => void;
   onOpenModelSettings?: () => void;
+  /** Tidies each line before it is sent (Labs clean transcript). The saved transcript is not changed. */
+  cleanText?: (text: string) => string;
 }
 
 export function useSummaryGeneration({
@@ -70,6 +98,7 @@ export function useSummaryGeneration({
   onMeetingUpdated,
   setAiSummary,
   onOpenModelSettings,
+  cleanText,
 }: UseSummaryGenerationProps) {
   const [summaryStatus, setSummaryStatus] = useState<SummaryStatus>('idle');
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -78,8 +107,11 @@ export function useSummaryGeneration({
   const completionHandledRef = useRef(false);
   const activeMeetingIdRef = useRef(meeting.id);
   const activeProcessIdRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
   const summaryRequestGenerationRef = useRef(0);
   const setAiSummaryRef = useRef(setAiSummary);
+  const cleanTextRef = useRef(cleanText);
+  cleanTextRef.current = cleanText;
   const onMeetingUpdatedRef = useRef(onMeetingUpdated);
   const stopSummaryPollingRef = useRef(stopSummaryPolling);
   setAiSummaryRef.current = setAiSummary;
@@ -164,6 +196,75 @@ export function useSummaryGeneration({
     };
   }, [meeting.id]);
 
+  // Reattach after navigation without replaying notifications for a historical
+  // completion. A late hydration request cannot overwrite a new local attempt.
+  useEffect(() => {
+    mountedRef.current = true;
+    const meetingId = meeting.id;
+    const generation = summaryRequestGenerationRef.current;
+    let disposed = false;
+    let pollOwner: string | null = null;
+    const isCurrent = () => !disposed && mountedRef.current &&
+      activeMeetingIdRef.current === meetingId && summaryRequestGenerationRef.current === generation;
+    const applySnapshot = async (result: any, resumed: boolean) => {
+      if (!isCurrent() || (result.meeting_id && result.meeting_id !== meetingId)) return;
+      const status = String(result.status ?? '').toLowerCase();
+      if (status === 'pending' || status === 'processing' || status === 'summarizing') {
+        setSummaryStatus(result.data ? 'regenerating' : 'processing');
+        setSummaryError(null);
+        if (result.data) setAiSummaryRef.current(result.data);
+        return;
+      }
+      activeProcessIdRef.current = null;
+      if (result.data) setAiSummaryRef.current(result.data);
+      if (status === 'failed' || status === 'error') {
+        setSummaryStatus('error');
+        setSummaryError(result.error || 'Summary generation failed. Please retry.');
+      } else if (status === 'completed' && !result.data) {
+        setSummaryStatus('error');
+        setSummaryError('Summary completed without content. Please retry.');
+      } else {
+        setSummaryStatus(result.data ? 'completed' : 'idle');
+        setSummaryError(null);
+      }
+      if (resumed && status === 'completed' && result.data && !completionHandledRef.current) {
+        completionHandledRef.current = true;
+        try {
+          await onMeetingUpdatedRef.current?.();
+        } catch (error) {
+          console.warn('Summary completed but meeting refresh failed:', error);
+        }
+      }
+    };
+    void (async () => {
+      try {
+        const result = await invokeTauri('api_get_summary', { meetingId }) as any;
+        if (!isCurrent()) return;
+        await applySnapshot(result, false);
+        if (!isCurrent()) return;
+        if (['pending', 'processing', 'summarizing'].includes(String(result.status).toLowerCase())) {
+          // A unique local owner, not a native process UUID or shared start time.
+          // Cleanup from an older view must not stop a newer view's same-run poll.
+          pollOwner = `resume:${meetingId}:${++recoveryPollSequence}`;
+          activeProcessIdRef.current = pollOwner;
+          startSummaryPolling(meetingId, pollOwner, (snapshot) => { void applySnapshot(snapshot, true); });
+        }
+      } catch (error) {
+        if (isCurrent()) {
+          setSummaryStatus('error');
+          setSummaryError('Could not restore summary status. Reopen this meeting to retry.');
+          console.error('Failed to restore summary status:', error);
+        }
+      }
+    })();
+    return () => {
+      disposed = true;
+      mountedRef.current = false;
+      // Preserve a newer poll that another mounted view may already own.
+      if (pollOwner) stopSummaryPollingRef.current(meetingId, pollOwner);
+    };
+  }, [meeting.id, startSummaryPolling]);
+
   // Helper to get status message
   const getSummaryStatusMessage = useCallback((status: SummaryStatus) => {
     switch (status) {
@@ -188,16 +289,18 @@ export function useSummaryGeneration({
     transcriptTexts,
     customPrompt = '',
     isRegeneration = false,
+    requestGeneration: providedRequestGeneration,
   }: {
     transcriptText: string;
     transcriptTexts?: string[];
     customPrompt?: string;
     isRegeneration?: boolean;
+    requestGeneration?: number;
   }): Promise<boolean> => {
     const requestMeetingId = meeting.id;
-    const requestGeneration = ++summaryRequestGenerationRef.current;
+    const requestGeneration = providedRequestGeneration ?? ++summaryRequestGenerationRef.current;
     const isCurrentRequest = () =>
-      activeMeetingIdRef.current === requestMeetingId &&
+      mountedRef.current && activeMeetingIdRef.current === requestMeetingId &&
       summaryRequestGenerationRef.current === requestGeneration;
     if (!isCurrentRequest()) return false;
 
@@ -553,22 +656,27 @@ export function useSummaryGeneration({
       return `[${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}]`;
     };
 
+    const clean = cleanTextRef.current;
+    const textOf = (t: Transcript) => (clean ? clean(t.text) || t.text : t.text);
     return {
       transcriptText: allTranscripts
         .map(t => {
           const speaker = t.speaker ? `${t.speaker}: ` : '';
-          return `${formatTime(t.audio_start_time, t.timestamp)} ${speaker}${t.text}`;
+          return `${formatTime(t.audio_start_time, t.timestamp)} ${speaker}${textOf(t)}`;
         })
         .join('\n'),
-      transcriptTexts: allTranscripts.map(t => t.text),
+      transcriptTexts: allTranscripts.map(textOf),
     };
   }, []);
 
   // Public API: Generate summary from transcripts
   const handleGenerateSummary = useCallback(async (customPrompt: string = ''): Promise<boolean> => {
     const requestMeetingId = meeting.id;
-    const isCurrentMeeting = () => activeMeetingIdRef.current === requestMeetingId;
-    if (!isCurrentMeeting()) return false;
+    const requestGeneration = ++summaryRequestGenerationRef.current;
+    const isCurrentRequest = () =>
+      mountedRef.current && activeMeetingIdRef.current === requestMeetingId &&
+      summaryRequestGenerationRef.current === requestGeneration;
+    if (!isCurrentRequest()) return false;
 
     // Check if model config is still loading
     if (isModelConfigLoading) {
@@ -586,7 +694,7 @@ export function useSummaryGeneration({
     // CHANGE: Fetch ALL transcripts from database, not from pagination state
     console.log('📊 Fetching all transcripts for summary generation...');
     const allTranscripts = await fetchAllTranscripts(meeting.id);
-    if (!isCurrentMeeting()) return false;
+    if (!isCurrentRequest()) return false;
 
     if (!allTranscripts.length) {
       const error_msg = 'No transcripts available for summary';
@@ -609,21 +717,42 @@ export function useSummaryGeneration({
       try {
         const endpoint = modelConfig.ollamaEndpoint || null;
         const models = await invokeTauri('get_ollama_models', { endpoint }) as any[];
-        if (!isCurrentMeeting()) return false;
+        if (!isCurrentRequest()) return false;
 
         if (!models || models.length === 0) {
-          setSummaryStatus('idle');
+          const errorMessage = 'No Ollama models are installed at the configured endpoint.';
+          setSummaryStatus('error');
+          setSummaryError(errorMessage);
           toast.error(
             'No Ollama models found. Please download gemma3:1b from Model Settings.',
             { duration: 5000 }
           );
+          onOpenModelSettings?.();
+          return false;
+        }
+
+        const selectedModelAvailable = models.some((model) =>
+          model?.name === modelConfig.model || model?.id === modelConfig.model
+        );
+        if (!modelConfig.model || !selectedModelAvailable) {
+          const errorMessage = modelConfig.model
+            ? `${modelConfig.model} is not installed at the configured endpoint.`
+            : 'Select an installed model before generating a summary.';
+          setSummaryStatus('error');
+          setSummaryError(errorMessage);
+          toast.error('Selected Ollama model is unavailable', {
+            description: errorMessage,
+            duration: 6000,
+          });
+          onOpenModelSettings?.();
           return false;
         }
       } catch (error) {
-        if (!isCurrentMeeting()) return false;
+        if (!isCurrentRequest()) return false;
         console.error('Error checking Ollama models:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
-        setSummaryStatus('idle');
+        setSummaryStatus('error');
+        setSummaryError(errorMessage);
 
         if (isOllamaNotInstalledError(errorMessage)) {
           // Ollama is not installed - show specific message with download link
@@ -645,6 +774,31 @@ export function useSummaryGeneration({
             { duration: 5000 }
           );
         }
+        onOpenModelSettings?.();
+        return false;
+      }
+    }
+
+    // Check the Claude Code CLI is installed and signed in
+    if (modelConfig.provider === 'claude-cli') {
+      const problem = await claudeCliPreflight();
+      if (!isCurrentRequest()) return false;
+
+      if (problem) {
+        setSummaryStatus('error');
+        setSummaryError(problem.message);
+        toast.error('Claude Code CLI is not ready', {
+          description: problem.message,
+          duration: 7000,
+          action: problem.installed
+            ? undefined
+            : {
+                label: 'Install',
+                onClick: () =>
+                  invokeTauri('open_external_url', { url: CLAUDE_CODE_INSTALL_URL }),
+              },
+        });
+        onOpenModelSettings?.();
         return false;
       }
     }
@@ -671,14 +825,14 @@ export function useSummaryGeneration({
           modelName: selectedModel,
           refresh: true,
         });
-        if (!isCurrentMeeting()) return false;
+        if (!isCurrentRequest()) return false;
 
         if (!isReady) {
           // Get detailed model status
           const modelInfo = await invokeTauri<BuiltInModelInfo | null>('builtin_ai_get_model_info', {
             modelName: selectedModel,
           });
-          if (!isCurrentMeeting()) return false;
+          if (!isCurrentRequest()) return false;
 
           if (modelInfo) {
             const status = modelInfo.status;
@@ -744,7 +898,7 @@ export function useSummaryGeneration({
 
         // Model is ready, continue to backend call
       } catch (error) {
-        if (!isCurrentMeeting()) return false;
+        if (!isCurrentRequest()) return false;
         console.error('Error validating built-in AI model:', error);
         setSummaryStatus('idle');
         toast.error('Failed to validate built-in AI model', {
@@ -756,22 +910,27 @@ export function useSummaryGeneration({
     }
 
     const summaryPayload = buildSummaryTranscriptPayload(allTranscripts);
-    if (!isCurrentMeeting()) return false;
+    if (!isCurrentRequest()) return false;
 
     return processSummary({
       ...summaryPayload,
       customPrompt,
+      requestGeneration,
     });
-  }, [meeting.id, fetchAllTranscripts, buildSummaryTranscriptPayload, processSummary, modelConfig, isModelConfigLoading, selectedTemplate]);
+  }, [meeting.id, fetchAllTranscripts, buildSummaryTranscriptPayload, processSummary, modelConfig, isModelConfigLoading, selectedTemplate, onOpenModelSettings]);
 
   // Public API: Regenerate summary from the current saved transcript
   const handleRegenerateSummary = useCallback(async (customPrompt = '') => {
     const requestMeetingId = meeting.id;
+    const requestGeneration = ++summaryRequestGenerationRef.current;
+    const isCurrentRequest = () =>
+      mountedRef.current && activeMeetingIdRef.current === requestMeetingId &&
+      summaryRequestGenerationRef.current === requestGeneration;
     setSummaryStatus('regenerating');
     setSummaryError(null);
 
     const allTranscripts = await fetchAllTranscripts(meeting.id);
-    if (activeMeetingIdRef.current !== requestMeetingId) return;
+    if (!isCurrentRequest()) return;
 
     if (!allTranscripts.length) {
       console.error('No transcripts available for regeneration');
@@ -780,33 +939,94 @@ export function useSummaryGeneration({
       return;
     }
 
+    if (modelConfig.provider === 'claude-cli') {
+      const problem = await claudeCliPreflight();
+      if (!isCurrentRequest()) return;
+
+      if (problem) {
+        setSummaryStatus('error');
+        setSummaryError(problem.message);
+        toast.error('Claude Code CLI is not ready', {
+          description: problem.message,
+          duration: 7000,
+        });
+        onOpenModelSettings?.();
+        return;
+      }
+    }
+
+    if (modelConfig.provider === 'ollama') {
+      try {
+        const endpoint = modelConfig.ollamaEndpoint || null;
+        const models = await invokeTauri('get_ollama_models', { endpoint }) as any[];
+        if (!isCurrentRequest()) return;
+
+        const selectedModelAvailable = models?.some((model) =>
+          model?.name === modelConfig.model || model?.id === modelConfig.model
+        );
+        if (!modelConfig.model || !selectedModelAvailable) {
+          const errorMessage = modelConfig.model
+            ? `${modelConfig.model} is not installed at the configured endpoint.`
+            : 'Select an installed model before regenerating a summary.';
+          setSummaryStatus('error');
+          setSummaryError(errorMessage);
+          toast.error('Selected Ollama model is unavailable', {
+            description: errorMessage,
+            duration: 6000,
+          });
+          onOpenModelSettings?.();
+          return;
+        }
+      } catch (error) {
+        if (!isCurrentRequest()) return;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setSummaryStatus('error');
+        setSummaryError(errorMessage);
+        toast.error('Failed to check Ollama models', {
+          description: errorMessage,
+          duration: 5000,
+        });
+        return;
+      }
+    }
+
     await processSummary({
       ...buildSummaryTranscriptPayload(allTranscripts),
       customPrompt,
-      isRegeneration: true
+      isRegeneration: true,
+      requestGeneration,
     });
-  }, [meeting.id, fetchAllTranscripts, buildSummaryTranscriptPayload, processSummary]);
+  }, [meeting.id, fetchAllTranscripts, buildSummaryTranscriptPayload, processSummary, modelConfig, onOpenModelSettings]);
 
   // Public API: Stop ongoing summary generation
   const handleStopGeneration = useCallback(async () => {
     console.log('Stopping summary generation for meeting:', meeting.id);
-    summaryRequestGenerationRef.current += 1;
+    const meetingId = meeting.id;
+    const generation = ++summaryRequestGenerationRef.current;
+    const pollOwner = activeProcessIdRef.current;
     activeProcessIdRef.current = null;
     completionHandledRef.current = false;
 
     try {
       // Call backend to cancel the summary generation
-      await invokeTauri('api_cancel_summary', {
-        meetingId: meeting.id
-      });
+      await invokeTauri('api_cancel_summary', { meetingId });
       console.log('✓ Backend cancellation request sent for meeting:', meeting.id);
     } catch (error) {
       console.error('Failed to cancel summary generation:', error);
-      // Continue with frontend cleanup even if backend call fails
+      if (mountedRef.current && activeMeetingIdRef.current === meetingId &&
+          summaryRequestGenerationRef.current === generation) {
+        setSummaryStatus('error');
+        setSummaryError('Could not cancel the summary. Reopen this meeting to restore its current status.');
+        toast.error('Summary cancellation failed');
+      }
+      return;
     }
 
+    if (!mountedRef.current || activeMeetingIdRef.current !== meetingId ||
+        summaryRequestGenerationRef.current !== generation) return;
+
     // Stop polling
-    stopSummaryPolling(meeting.id);
+    stopSummaryPolling(meetingId, pollOwner ?? undefined);
 
     // Reset status to idle
     setSummaryStatus('idle');

@@ -1,6 +1,7 @@
 param(
   [string]$VulkanSdk,
   [string]$LlvmDir,
+  [string]$CudaToolkit,
   [switch]$SkipFrontend,
   [switch]$AllowUnsigned,
   [string]$UpdaterPrivateKeyPath,
@@ -186,6 +187,15 @@ function Build-Variant([string]$Name, [string]$TargetDir, [string[]]$Features) {
   } finally { Pop-Location }
   $binary = Join-Path $TargetDir "release\meetily.exe"
   if (-not (Test-Path $binary)) { throw "$Name binary missing: $binary" }
+  # Tauri's packaging pass can relink the CPU placeholder with a different
+  # context. Retain each EXE/PDB pair before that pass overwrites its symbols.
+  $pdb = Join-Path $TargetDir "release\meetily.pdb"
+  if (Test-Path $pdb) {
+    $symbols = Join-Path $repo "target\release-symbols\$appVersion\$($Name.ToLowerInvariant())"
+    New-Item -ItemType Directory -Force -Path $symbols | Out-Null
+    Copy-Item $binary (Join-Path $symbols "meetily.exe") -Force
+    Copy-Item $pdb (Join-Path $symbols "meetily.pdb") -Force
+  }
   return $binary
 }
 
@@ -198,7 +208,7 @@ $env:Vulkan_INCLUDE_DIR = Join-Path $VulkanSdk "Include"
 $env:PATH = "$(Join-Path $VulkanSdk 'Bin');$env:PATH"
 $vulkanBinary = Build-Variant "Vulkan" $vulkanTarget @("vulkan")
 
-$env:CUDA_PATH = Join-Path $repo ".cuda_toolkit"
+$env:CUDA_PATH = if ($CudaToolkit) { [System.IO.Path]::GetFullPath($CudaToolkit) } else { Join-Path $repo ".cuda_toolkit" }
 $env:CUDA_TOOLKIT_ROOT_DIR = $env:CUDA_PATH
 $nvcc = Join-Path $env:CUDA_PATH "bin\nvcc.exe"
 if (-not (Test-Path $nvcc)) {
@@ -224,7 +234,9 @@ Copy-Item $vulkanProbeBinary (Join-Path $variants "meetily-vulkan-probe.exe") -F
 
 & (Join-Path $PSScriptRoot "stage-runtime-deps.ps1") -BuildOutput @(
   (Join-Path $cpuTarget "release"),
-  (Join-Path $cudaTarget "release")
+  (Join-Path $cudaTarget "release"),
+  (Join-Path $env:CUDA_PATH "bin\x64"),
+  (Join-Path $env:CUDA_PATH "bin")
 )
 
 foreach ($binary in Get-ChildItem $variants -Filter "*.exe") {
@@ -287,9 +299,18 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path $output)) {
 if ($LASTEXITCODE -ne 0) { throw "Frameless installer signing failed" }
 
 $signature = (Get-Content $updaterSignatureOutput -Raw).Trim()
+# Keep in-app updater notes aligned with this version's published release notes.
+# A future version without a notes file must not inherit an older release's claims.
+$notesPath = Join-Path $repo ("docs\RELEASE_V{0}.md" -f $appVersion.Replace('.', ''))
+$releaseNotes = if (Test-Path $notesPath) {
+    # Get-Content attaches PowerShell provider metadata to the string. Windows
+    # PowerShell can serialize that as an object (including filesystem details),
+    # but the updater requires notes to be plain text.
+    [System.IO.File]::ReadAllText($notesPath)
+} else { "Meetily $appVersion. See https://github.com/TylerBuza/Meetily-ActuallyFree/releases/tag/v$appVersion for release notes." }
 $latest = [ordered]@{
   version = $appVersion
-  notes = "Preserves user-renamed meetings, restores summary template and model controls, synchronizes meeting titles, and anchors meeting and transcript times to the recording start."
+    notes = $releaseNotes
   pub_date = [DateTime]::UtcNow.ToString("o")
   platforms = [ordered]@{
     "windows-x86_64" = [ordered]@{

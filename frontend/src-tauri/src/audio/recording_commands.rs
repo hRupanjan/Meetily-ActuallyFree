@@ -1,4 +1,4 @@
-﻿// audio/recording_commands.rs
+// audio/recording_commands.rs
 //
 // Slim Tauri command layer for recording functionality.
 // Delegates to transcription and recording modules for actual implementation.
@@ -31,6 +31,18 @@ use super::transcription::{
 
 // Re-export TranscriptUpdate for backward compatibility
 pub use super::transcription::TranscriptUpdate;
+
+async fn start_live_diarization<R: Runtime>(app: &AppHandle<R>) {
+    let handle = app.clone();
+    let result = tokio::task::spawn_blocking(move || crate::diarization::online::start(handle)).await;
+    let error = match result {
+        Ok(Ok(())) => return,
+        Ok(Err(error)) => error.to_string(),
+        Err(error) => error.to_string(),
+    };
+    warn!("Live speaker identification unavailable: {error}");
+    let _ = app.emit("live-diarization-error", format!("Live speaker labeling is unavailable: {error}. Transcription will use source labels."));
+}
 
 // ============================================================================
 // GLOBAL STATE
@@ -121,6 +133,49 @@ fn install_fatal_error_callback<R: Runtime>(
     });
 }
 
+fn map_recording_start_error<R: Runtime>(app: &AppHandle<R>, error: anyhow::Error) -> String {
+    crate::tray::update_tray_menu(app);
+    if error.downcast_ref::<crate::onnx_runtime::InitializationError>().is_some() {
+        log::error!("Transcription runtime startup failed: {error:#}");
+        format!("{}: Speech recognition could not initialize. Restart Meetily; if it continues, repair or reinstall the app.", crate::onnx_runtime::START_ERROR_CODE)
+    } else {
+        format!("Failed to start recording: {error}")
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn start_windows_audio_route_monitor<R: Runtime>(
+    app: &AppHandle<R>,
+    manager: &RecordingManager,
+    system_device_name: Option<String>,
+) {
+    let system_capture_active = manager
+        .get_state()
+        .active_capture_sources()
+        .map(|(_, system_active)| system_active)
+        .unwrap_or(false);
+
+    if system_capture_active {
+        if let Some(device_name) = system_device_name.as_ref() {
+            super::windows_audio_sessions::start_monitoring(app.clone(), device_name.clone());
+            return;
+        }
+    }
+
+    super::windows_audio_sessions::stop_monitoring();
+    let device = system_device_name.unwrap_or_else(|| "the selected output".to_string());
+    let warning = super::windows_audio_sessions::AudioRouteWarning {
+        title: "System audio is not being captured".to_string(),
+        message: format!(
+            "Meetily could not open {} for loopback capture. Your microphone is still recording; stop and restart after selecting an available output under Settings > Recording > System Audio.",
+            device
+        ),
+    };
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.emit("recording-audio-route-warning", warning);
+    }
+}
+
 // ============================================================================
 // PUBLIC TYPES
 // ============================================================================
@@ -172,6 +227,9 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
         return Err("Recording already in progress".to_string());
     }
 
+    crate::onnx_runtime::ensure_available().map_err(|error| {
+        map_recording_start_error(&app, crate::onnx_runtime::InitializationError(error).into())
+    })?;
     // Validate that transcription models are available before starting recording
     info!("ðŸ” Validating transcription model availability before starting recording...");
     if let Err(validation_error) = transcription::validate_transcription_model_ready(&app).await {
@@ -196,16 +254,18 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
     let mut manager = RecordingManager::new();
 
     // Load recording preferences to get auto_save AND device preferences
-    let (auto_save, preferred_mic_name, preferred_system_name, recordings_folder) =
+    let (auto_save, preferred_mic_name, preferred_system_name, recordings_folder, per_app_enabled, per_app_targets) =
         match super::recording_preferences::load_recording_preferences(&app).await {
             Ok(prefs) => {
-                info!("ðŸ“‹ Loaded recording preferences: auto_save={}, preferred_mic={:?}, preferred_system={:?}",
-                      prefs.auto_save, prefs.preferred_mic_device, prefs.preferred_system_device);
+                info!("📋 Loaded recording preferences: auto_save={}, preferred_mic={:?}, preferred_system={:?}, per_app={}, targets={}",
+                      prefs.auto_save, prefs.preferred_mic_device, prefs.preferred_system_device, prefs.per_app_recording_enabled, prefs.per_app_targets.len());
                 (
                     prefs.auto_save,
                     prefs.preferred_mic_device,
                     prefs.preferred_system_device,
                     prefs.save_folder,
+                    prefs.per_app_recording_enabled,
+                    prefs.per_app_targets,
                 )
             }
             Err(e) => {
@@ -215,10 +275,13 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
                     None,
                     None,
                     super::recording_preferences::get_default_recordings_folder(),
+                    false,
+                    Vec::new(),
                 )
             }
         };
     manager.set_recordings_folder(recordings_folder);
+    manager.set_per_app_config(per_app_enabled, per_app_targets);
 
     // ============================================================================
     // MICROPHONE DEVICE RESOLUTION: Preference â†’ Default â†’ Error
@@ -368,11 +431,19 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
     // Live audio-level meter: forward per-source (mic + system) levels to the UI visualizer
     let level_sender = spawn_level_forwarder(&app);
 
+    start_live_diarization(&app).await;
     // Start recording with resolved devices (replaces start_recording_with_defaults_and_auto_save call)
+    #[cfg(target_os = "windows")]
+    let resolved_system_device_name = system_device.as_ref().map(|device| device.name.clone());
     let transcription_receiver = manager
         .start_recording(microphone_device, system_device, auto_save, Some(level_sender))
         .await
-        .map_err(|e| format!("Failed to start recording: {}", e))?;
+        .map_err(|error| { crate::diarization::online::stop(); map_recording_start_error(&app, error) })?;
+
+    #[cfg(target_os = "windows")]
+    if !per_app_enabled {
+        start_windows_audio_route_monitor(&app, &manager, resolved_system_device_name);
+    }
 
     // Store the manager globally to keep it alive
     {
@@ -387,9 +458,6 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
     // Live speaker identification: label transcript segments with individual
     // voices as they arrive. Best-effort — if the models aren't installed we
     // simply fall back to capture-source labels.
-    if let Err(e) = crate::diarization::online::start() {
-        info!("Live speaker identification unavailable: {}", e);
-    }
     reset_speech_detected_flag(); // Reset for new recording session
 
     // Start optimized parallel transcription task and store handle
@@ -501,6 +569,9 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
         return Err("Recording already in progress".to_string());
     }
 
+    crate::onnx_runtime::ensure_available().map_err(|error| {
+        map_recording_start_error(&app, crate::onnx_runtime::InitializationError(error).into())
+    })?;
     // Validate that transcription models are available before starting recording
     info!("ðŸ” Validating transcription model availability before starting recording...");
     if let Err(validation_error) = transcription::validate_transcription_model_ready(&app).await {
@@ -598,6 +669,10 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
     };
     let auto_save = preferences.auto_save;
     manager.set_recordings_folder(preferences.save_folder);
+    manager.set_per_app_config(
+        preferences.per_app_recording_enabled,
+        preferences.per_app_targets.clone(),
+    );
 
     // Always ensure a meeting name is set so incremental saver initializes
     let effective_meeting_name = meeting_name.clone().unwrap_or_else(|| {
@@ -614,11 +689,19 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
     // Live audio-level meter: forward per-source (mic + system) levels to the UI visualizer
     let level_sender = spawn_level_forwarder(&app);
 
+    start_live_diarization(&app).await;
     // Start recording with specified devices and auto_save setting
+    #[cfg(target_os = "windows")]
+    let resolved_system_device_name = system_device.as_ref().map(|device| device.name.clone());
     let transcription_receiver = manager
         .start_recording(mic_device, system_device, auto_save, Some(level_sender))
         .await
-        .map_err(|e| format!("Failed to start recording: {}", e))?;
+        .map_err(|error| { crate::diarization::online::stop(); map_recording_start_error(&app, error) })?;
+
+    #[cfg(target_os = "windows")]
+    if !preferences.per_app_recording_enabled {
+        start_windows_audio_route_monitor(&app, &manager, resolved_system_device_name);
+    }
 
     // Store the manager globally to keep it alive
     {
@@ -633,9 +716,6 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
     // Live speaker identification: label transcript segments with individual
     // voices as they arrive. Best-effort — if the models aren't installed we
     // simply fall back to capture-source labels.
-    if let Err(e) = crate::diarization::online::start() {
-        info!("Live speaker identification unavailable: {}", e);
-    }
     reset_speech_detected_flag(); // Reset for new recording session
 
     // Start optimized parallel transcription task and store handle
@@ -760,6 +840,9 @@ async fn stop_recording_inner<R: Runtime>(
         return Ok(StopOutcome::AlreadyStopping);
     }
     let _stop_guard = StopGuard;
+
+    #[cfg(target_os = "windows")]
+    super::windows_audio_sessions::stop_monitoring();
 
     // Rust owns teardown. This is independent of webview event delivery and is
     // serialized against duplicate/queued minimize callbacks.
