@@ -7,6 +7,34 @@ use std::path::PathBuf;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
+/// Only the template's leading H1 is a title candidate. A heading in the body,
+/// or an unfilled template instruction, must never rename a meeting.
+pub(crate) fn extract_meeting_name_from_markdown(markdown: &str) -> Option<String> {
+    let first = markdown.lines().find(|line| !line.trim().is_empty())?.trim();
+    let title = first.strip_prefix("# ")?.trim().trim_matches('*').trim();
+    let normalized = title.trim_matches(|c| matches!(c, '<' | '>' | '[' | ']' | '`')).trim().to_lowercase();
+    if title.is_empty() || title.chars().count() > 200 || matches!(normalized.as_str(),
+        "add title here" | "ai-generated title" | "meeting title" | "title" |
+        "summary" | "meeting summary" | "overview" | "notes" | "transcript") {
+        return None;
+    }
+    Some(title.to_string())
+}
+
+#[cfg(test)]
+mod generated_title_tests {
+    use super::extract_meeting_name_from_markdown;
+
+    #[test]
+    fn generated_title_accepts_only_a_useful_leading_heading() {
+        assert_eq!(extract_meeting_name_from_markdown("\n# **GPU Budget Review**\n\n## Decisions"), Some("GPU Budget Review".into()));
+        assert_eq!(extract_meeting_name_from_markdown("# Revisión del presupuesto\n"), Some("Revisión del presupuesto".into()));
+        for text in ["", "## Decisions", "Body\n# A later heading", "# <Add Title here>", "# [AI-Generated Title]", "# **Meeting Title**", "# Summary", "# "] {
+            assert_eq!(extract_meeting_name_from_markdown(text), None, "{text}");
+        }
+    }
+}
+
 // Compile regex once and reuse (significant performance improvement for repeated calls)
 static THINKING_TAG_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(?s)<think(?:ing)?>.*?</think(?:ing)?>").unwrap()
@@ -214,11 +242,10 @@ pub fn chunk_text(text: &str, chunk_size_tokens: usize, overlap_tokens: usize) -
 
     let mut chunks = Vec::new();
     let mut start_char = 0;
-    // Step is the size of the non-overlapping part of the window
-    let step = chunk_size_chars.saturating_sub(overlap_chars).max(1);
 
     while start_char < total_chars {
         let end_char = (start_char + chunk_size_chars).min(total_chars);
+        let mut emitted_end_char = end_char;
 
         // Convert character indices to byte indices for string slicing
         let start_byte: usize = chars[..start_char].iter().map(|c| c.len_utf8()).sum();
@@ -227,24 +254,27 @@ pub fn chunk_text(text: &str, chunk_size_tokens: usize, overlap_tokens: usize) -
         // Try to break at sentence or word boundary for cleaner chunks
         if end_char < total_chars {
             let slice = &text[start_byte..end_byte];
-            // Look for sentence boundary (period followed by space)
-            if let Some(last_period) = slice.rfind(". ") {
-                end_byte = start_byte + last_period + 2;
-            } else if let Some(last_space) = slice.rfind(' ') {
-                // Fall back to word boundary (space)
-                end_byte = start_byte + last_space + 1;
+            // Upstream #603: advance from what was actually emitted, not the
+            // original window. Reject boundaries that cannot make progress.
+            let sentence = slice.rfind(". ").map(|index| index + 2);
+            let word = slice.rfind(' ').map(|index| index + 1);
+            let boundary = sentence
+                .filter(|end| slice[..*end].chars().count() > overlap_chars)
+                .or_else(|| word.filter(|end| slice[..*end].chars().count() > overlap_chars));
+            if let Some(boundary) = boundary {
+                end_byte = start_byte + boundary;
+                emitted_end_char = start_char + slice[..boundary].chars().count();
             }
         }
 
         // Extract chunk
         chunks.push(text[start_byte..end_byte].to_string());
 
-        if end_char >= total_chars {
+        if emitted_end_char >= total_chars {
             break;
         }
 
-        // Move to next chunk with overlap (in character units)
-        start_char += step;
+        start_char = emitted_end_char.saturating_sub(overlap_chars).max(start_char + 1);
     }
 
     info!("Created {} chunks from text", chunks.len());
@@ -280,18 +310,20 @@ pub fn clean_llm_markdown_output(markdown: &str) -> String {
     trimmed.to_string()
 }
 
-/// Extracts meeting name from the first heading in markdown
-///
-/// # Arguments
-/// * `markdown` - Markdown content
-///
-/// # Returns
-/// Meeting name if found, None otherwise
-pub fn extract_meeting_name_from_markdown(markdown: &str) -> Option<String> {
-    markdown
-        .lines()
-        .find(|line| line.starts_with("# "))
-        .map(|line| line.trim_start_matches("# ").trim().to_string())
+fn require_meaningful_summary(markdown: &str, stage: &str) -> Result<String, String> {
+    let cleaned = clean_llm_markdown_output(markdown);
+    let has_content = cleaned.lines().any(|line| {
+        let line = line.trim();
+        !line.starts_with('#')
+            && !line.starts_with("```")
+            && line.chars().any(char::is_alphanumeric)
+    });
+
+    if has_content {
+        Ok(cleaned)
+    } else {
+        Err(format!("{stage} returned empty content"))
+    }
 }
 
 /// Generates a complete meeting summary with conditional chunking strategy
@@ -336,6 +368,7 @@ pub async fn generate_meeting_summary(
     temperature: Option<f32>,
     top_p: Option<f32>,
     app_data_dir: Option<&PathBuf>,
+    claude_cli_path: Option<&str>,
     cancellation_token: Option<&CancellationToken>,
     summary_language: Option<&str>,
     detected_transcript_language: Option<&str>,
@@ -412,11 +445,16 @@ pub async fn generate_meeting_summary(
                     temperature,
                     top_p,
                     app_data_dir,
+                    claude_cli_path,
                     cancellation_token,
                 )
                 .await
                 {
                     Ok(summary) => {
+                        let summary = require_meaningful_summary(
+                            &summary,
+                            &format!("Transcript chunk {}/{}", i + 1, num_chunks),
+                        )?;
                         chunk_summaries.push(summary);
                         info!("✓ Chunk {}/{} processed successfully", i + 1, num_chunks);
                     }
@@ -426,15 +464,14 @@ pub async fn generate_meeting_summary(
                             return Err(e);
                         }
                         error!("Failed processing chunk {}/{}: {}", i + 1, num_chunks, e);
+                        return Err(format!(
+                            "Summary generation failed while processing transcript chunk {}/{}: {}",
+                            i + 1,
+                            num_chunks,
+                            e
+                        ));
                     }
                 }
-            }
-
-            if chunk_summaries.is_empty() {
-                return Err(
-                    "Multi-level summarization failed: No chunks were processed successfully."
-                        .to_string(),
-                );
             }
 
             successful_chunk_count = chunk_summaries.len() as i64;
@@ -452,7 +489,7 @@ pub async fn generate_meeting_summary(
                 let combined_text = chunk_summaries.join("\n---\n");
                 let system_prompt_combine = "You are an expert at synthesizing meeting summaries.";
                 let user_prompt_combine = build_combine_summary_user_prompt(&combined_text);
-                generate_summary(
+                let combined = generate_summary(
                     client,
                     provider,
                     model_name,
@@ -465,9 +502,11 @@ pub async fn generate_meeting_summary(
                     temperature,
                     top_p,
                     app_data_dir,
+                    claude_cli_path,
                     cancellation_token,
                 )
-                .await?
+                .await?;
+                require_meaningful_summary(&combined, "Combined transcript summary")?
             } else {
                 chunk_summaries.remove(0)
             };
@@ -513,11 +552,12 @@ pub async fn generate_meeting_summary(
             temperature,
             top_p,
             app_data_dir,
+            claude_cli_path,
             cancellation_token,
         )
         .await?;
 
-        let english_markdown = clean_llm_markdown_output(&raw_markdown);
+        let english_markdown = require_meaningful_summary(&raw_markdown, "Final summary")?;
         info!("Summary pass completed ({} chars)", english_markdown.len());
 
         (english_markdown, successful_chunk_count)
@@ -538,6 +578,7 @@ pub async fn generate_meeting_summary(
                 temperature,
                 top_p,
                 app_data_dir,
+                claude_cli_path,
                 cancellation_token,
             )
             .await
@@ -565,6 +606,7 @@ pub async fn generate_meeting_summary(
                     temperature,
                     top_p,
                     app_data_dir,
+                    claude_cli_path,
                     cancellation_token,
                 )
                 .await,
@@ -594,6 +636,7 @@ async fn run_markdown_transform(
     temperature: Option<f32>,
     top_p: Option<f32>,
     app_data_dir: Option<&PathBuf>,
+    claude_cli_path: Option<&str>,
     cancellation_token: Option<&CancellationToken>,
 ) -> Result<String, String> {
     if let Some(token) = cancellation_token {
@@ -615,12 +658,13 @@ async fn run_markdown_transform(
         temperature,
         top_p,
         app_data_dir,
+        claude_cli_path,
         cancellation_token,
     )
     .await
     .map_err(|e| format!("{failure_label} failed: {e}"))?;
 
-    Ok(clean_llm_markdown_output(&raw))
+    require_meaningful_summary(&raw, failure_label)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -637,6 +681,7 @@ async fn translate_markdown(
     temperature: Option<f32>,
     top_p: Option<f32>,
     app_data_dir: Option<&PathBuf>,
+    claude_cli_path: Option<&str>,
     cancellation_token: Option<&CancellationToken>,
 ) -> Result<String, String> {
     info!("Translation pass: target language = {}", target_language);
@@ -660,6 +705,7 @@ async fn translate_markdown(
         temperature,
         top_p,
         app_data_dir,
+        claude_cli_path,
         cancellation_token,
     )
     .await
@@ -678,6 +724,7 @@ async fn normalize_markdown_to_english(
     temperature: Option<f32>,
     top_p: Option<f32>,
     app_data_dir: Option<&PathBuf>,
+    claude_cli_path: Option<&str>,
     cancellation_token: Option<&CancellationToken>,
 ) -> Result<String, String> {
     info!("English normalization pass: preserving Markdown structure");
@@ -700,6 +747,7 @@ async fn normalize_markdown_to_english(
         temperature,
         top_p,
         app_data_dir,
+        claude_cli_path,
         cancellation_token,
     )
     .await
@@ -708,6 +756,20 @@ async fn normalize_markdown_to_english(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn chunk_text_preserves_content_after_early_sentence_boundary() {
+        let chunks = chunk_text("Intro. LOST_MARKER trailing content ensures chunking", 10, 1);
+        assert!(chunks.iter().any(|chunk| chunk.contains("LOST_MARKER")), "{chunks:?}");
+    }
+
+    #[test]
+    fn chunk_text_keeps_unicode_boundaries_and_forward_progress() {
+        assert_eq!(chunk_text("é ab", 1, 0), vec!["é ", "ab"]);
+        assert_eq!(chunk_text("abcd", 1, 1), vec!["abc", "bcd"]);
+        assert_eq!(chunk_text("", 1, 0), Vec::<String>::new());
+        assert_eq!(chunk_text("text", 0, 0), Vec::<String>::new());
+    }
 
     #[test]
     fn chunk_summary_prompt_forces_english_base_output() {
@@ -737,6 +799,29 @@ mod tests {
     fn english_base_instruction_marks_non_english_prose_invalid_without_bloat() {
         assert!(ENGLISH_BASE_SUMMARY_INSTRUCTION.contains("non-English prose is invalid"));
         assert!(ENGLISH_BASE_SUMMARY_INSTRUCTION.len() <= 120);
+    }
+
+    #[test]
+    fn meaningful_summary_rejects_empty_or_heading_only_output() {
+        assert!(require_meaningful_summary("", "Summary").is_err());
+        assert!(require_meaningful_summary("# Meeting title\n\n## Notes", "Summary").is_err());
+        assert!(
+            require_meaningful_summary("```markdown\n# Meeting title\n```", "Summary").is_err()
+        );
+        assert!(require_meaningful_summary("```json\n```", "Summary").is_err());
+        assert!(require_meaningful_summary("-\n-\n", "Summary").is_err());
+    }
+
+    #[test]
+    fn meaningful_summary_cleans_and_accepts_body_content() {
+        assert_eq!(
+            require_meaningful_summary(
+                "```markdown\n# Meeting title\n\n- A decision was made.\n```",
+                "Summary"
+            )
+            .unwrap(),
+            "# Meeting title\n\n- A decision was made."
+        );
     }
 
     #[test]

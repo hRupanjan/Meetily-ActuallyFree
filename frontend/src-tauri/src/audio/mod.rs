@@ -19,6 +19,8 @@ pub mod ffmpeg_mixer;  // NEW: FFmpeg-style adaptive audio mixer
 pub mod recording_state;
 pub mod pipeline;
 pub mod stream;
+#[cfg(any(target_os = "macos", target_os = "windows", test))]
+pub mod capture_worker;
 pub mod recording_manager;
 pub mod recording_commands;
 pub mod recording_preferences;
@@ -28,6 +30,7 @@ pub mod level_monitor;
 pub mod simple_level_monitor;
 pub mod buffer_pool;
 pub mod post_processor;
+pub mod waveform;
 pub mod hardware_detector;
 pub mod async_logger;
 pub mod batch_processor;
@@ -35,6 +38,8 @@ pub mod system_detector;
 pub mod system_audio_commands;
 pub mod device_monitor;  // NEW: Device disconnect/reconnect monitoring
 pub mod playback_monitor; // NEW: Playback device detection for BT warnings
+#[cfg(target_os = "windows")]
+pub mod windows_audio_sessions;
 
 // Transcription module (provider abstraction, engine management, worker pool)
 pub mod transcription;
