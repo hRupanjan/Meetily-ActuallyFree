@@ -6,7 +6,11 @@ post-call ownership/cancellation; #22 Linux capture; #38 remaining features;
 
 This note tracks source integration and qualification, not a published release.
 Update: macOS-only preview `v0.2.21-macos` is now published from `5f37f2a`.
-Windows publication is on hold at the user's request; v0.2.20 remains Latest.
+The user lifted the Windows hold on October 28; v0.2.23 is now the immutable
+Latest, including the integrated shared fixes and persistent crash diagnostics.
+See [RELEASE_V0223_QUALIFICATION.md](RELEASE_V0223_QUALIFICATION.md) for source,
+package, installed-upgrade, and publication verification. The newer separate
+Mac preview is v0.2.22-macos; the v0.2.21 provenance below is historical.
 Mac candidate `37490748085`, publication `37492451509`, and public-download
 smoke test `37492566726` passed, including two launches of the published app.
 The immutable DMG SHA-256 is
@@ -29,6 +33,40 @@ trigger, and redacted logs; physical Mac reproduction remains outstanding.
 Core Audio inactivity and stream-end errors now have distinct user-visible error
 messages, separate from closed pipeline delivery. This improves diagnosis; it
 does not establish or claim a fix for the reporter's new failure.
+
+Physical macOS cause, found on an M5 Pro with macOS 26.6.2 (25G83): the system
+tap's aggregate device was created with `tapautostart` on. Per the SDK, that makes
+`AudioDeviceStart` wait until a tapped process receives audio, so it returns
+`noErr` while the IO proc never runs. A meeting started in silence therefore had
+zero callbacks and hit the five-second inactivity check, ending the whole
+recording. `coreaudiod` logged `HALS_MultiTap::register_autostart_context` for
+the aggregate's IO context and no start for it during a 37-second take.
+A standalone Swift probe with the same mono global tap and private aggregate
+showed the split (silence 3 s → 440 Hz tone 3 s → silence 2 s):
+
+| Aggregate | Silence | Tone | Silence after |
+|---|---|---|---|
+| tap only, auto-start on (old) | no callbacks, not running | audio | keeps running |
+| tap only, auto-start off | callbacks of zeros | audio | running |
+| output sub-device + tap, auto-start on | no callbacks | audio | running |
+| output sub-device + tap, auto-start off | callbacks of zeros | audio | running |
+
+`core_audio.rs` now keeps auto-start off. A local unsigned build on the same Mac
+recorded 47 s starting in silence: callbacks began within the first 5 s with
+zero peak, speech played through the speakers reached `system.mp4` and the
+transcript, and no inactivity warning fired. That is one Mac with built-in
+speakers. A Multi-Output Device as the default output and the reporter's own
+device remain unqualified.
+
+A later stall no longer ends the meeting. `stream.rs` keeps polling after a
+five-second gap and reports `SystemCaptureStalled` once per stall through
+`RecordingState::report_warning`. That path does not count toward the stop
+thresholds, and `recording_commands.rs` turns it into the existing
+`recording-audio-route-warning` toast and notification for the main window,
+the same channel the Windows loopback warning uses. The microphone keeps
+recording, and the log notes when callbacks resume. An ended Core Audio stream
+(`SystemCaptureEnded`) and a sample-rate change stay terminal. The unit test
+`system_capture_stall_warning_keeps_recording` covers the state contract.
 
 ## Linux capture #22 — blocked
 
@@ -102,7 +140,7 @@ edit-distance canonicalization against explicitly configured glossary terms;
 this can alter recognized words and is not an accuracy guarantee. Empty glossary
 retains the original argmax path. Model-dependent accuracy remains unqualified.
 
-## Verification of the integrated source
+## Verification of the integrated source (before v0.2.23 qualification)
 
 - Final Windows CPU native suite: **379 passed, 10 ignored**. No model/audio-dependent
   ignored tests ran during this review. Includes seven vocabulary regressions and

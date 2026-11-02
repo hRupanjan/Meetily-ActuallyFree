@@ -4,6 +4,7 @@
 // Delegates to transcription and recording modules for actual implementation.
 
 use anyhow::Result;
+use crate::diagnostics::{track, wait, Span, Stage};
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::{
@@ -33,8 +34,11 @@ use super::transcription::{
 pub use super::transcription::TranscriptUpdate;
 
 async fn start_live_diarization<R: Runtime>(app: &AppHandle<R>) {
+    let diagnostic = Span::start(Stage::LiveDiarization);
     let handle = app.clone();
     let result = tokio::task::spawn_blocking(move || crate::diarization::online::start(handle)).await;
+    diagnostic.result(&result.as_ref().map_err(|_| ())
+        .and_then(|inner| inner.as_ref().map_err(|_| ())));
     let error = match result {
         Ok(Ok(())) => return,
         Ok(Err(error)) => error.to_string(),
@@ -133,6 +137,28 @@ fn install_fatal_error_callback<R: Runtime>(
     });
 }
 
+/// Surfaces a degraded source through the same toast and notification as the
+/// Windows route warning, so the user knows the meeting is only partly captured.
+fn install_capture_warning_callback<R: Runtime>(
+    manager: &mut RecordingManager,
+    app: &AppHandle<R>,
+) {
+    let app_for_warning = app.clone();
+    manager.set_warning_callback(move |error| {
+        // Main window only, as for the Windows warning: every window's layout
+        // listens, so a broadcast would toast and notify once per window.
+        if let Some(window) = app_for_warning.get_webview_window("main") {
+            let _ = window.emit(
+                "recording-audio-route-warning",
+                serde_json::json!({
+                    "title": "Computer audio is not being captured",
+                    "message": error.user_message(),
+                }),
+            );
+        }
+    });
+}
+
 fn map_recording_start_error<R: Runtime>(app: &AppHandle<R>, error: anyhow::Error) -> String {
     crate::tray::update_tray_menu(app);
     if error.downcast_ref::<crate::onnx_runtime::InitializationError>().is_some() {
@@ -213,12 +239,22 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
     app: AppHandle<R>,
     meeting_name: Option<String>,
 ) -> Result<(), String> {
+    track(
+        Stage::RecordingStart,
+        start_recording_with_meeting_name_inner(app, meeting_name),
+    ).await
+}
+
+async fn start_recording_with_meeting_name_inner<R: Runtime>(
+    app: AppHandle<R>,
+    meeting_name: Option<String>,
+) -> Result<(), String> {
     info!(
         "Starting recording with default devices, meeting: {:?}",
         meeting_name
     );
 
-    let engine_lifecycle_guard = super::common::acquire_engine_lifecycle_lock().await;
+    let engine_lifecycle_guard = wait(Stage::LifecycleLock, super::common::acquire_engine_lifecycle_lock()).await;
 
     // Check if already recording
     let current_recording_state = IS_RECORDING.load(Ordering::SeqCst);
@@ -227,12 +263,15 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
         return Err("Recording already in progress".to_string());
     }
 
-    crate::onnx_runtime::ensure_available().map_err(|error| {
+    let runtime_diagnostic = Span::start(Stage::RuntimeCheck);
+    let runtime_result = crate::onnx_runtime::ensure_available();
+    runtime_diagnostic.result(&runtime_result);
+    runtime_result.map_err(|error| {
         map_recording_start_error(&app, crate::onnx_runtime::InitializationError(error).into())
     })?;
     // Validate that transcription models are available before starting recording
     info!("ðŸ” Validating transcription model availability before starting recording...");
-    if let Err(validation_error) = transcription::validate_transcription_model_ready(&app).await {
+    if let Err(validation_error) = track(Stage::ModelValidation, transcription::validate_transcription_model_ready(&app)).await {
         error!("Model validation failed: {}", validation_error);
 
         // Emit error event for frontend - actionable: false to show toast instead of modal
@@ -247,6 +286,7 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
     }
     info!("âœ… Transcription model validation passed");
 
+    let device_diagnostic = Span::start(Stage::DeviceResolution);
     // Async-first approach - no more blocking operations!
     info!("ðŸš€ Starting async recording initialization");
 
@@ -427,16 +467,18 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
     manager.set_meeting_name(Some(effective_meeting_name));
 
     install_fatal_error_callback(&mut manager, &app);
+    install_capture_warning_callback(&mut manager, &app);
 
     // Live audio-level meter: forward per-source (mic + system) levels to the UI visualizer
     let level_sender = spawn_level_forwarder(&app);
 
+    device_diagnostic.complete();
     start_live_diarization(&app).await;
     // Start recording with resolved devices (replaces start_recording_with_defaults_and_auto_save call)
     #[cfg(target_os = "windows")]
     let resolved_system_device_name = system_device.as_ref().map(|device| device.name.clone());
-    let transcription_receiver = manager
-        .start_recording(microphone_device, system_device, auto_save, Some(level_sender))
+    let transcription_receiver = track(Stage::CaptureStart, manager
+        .start_recording(microphone_device, system_device, auto_save, Some(level_sender)))
         .await
         .map_err(|error| { crate::diarization::online::stop(); map_recording_start_error(&app, error) })?;
 
@@ -555,12 +597,24 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
     system_device_name: Option<String>,
     meeting_name: Option<String>,
 ) -> Result<(), String> {
+    track(
+        Stage::RecordingStart,
+        start_recording_with_devices_and_meeting_inner(app, mic_device_name, system_device_name, meeting_name),
+    ).await
+}
+
+async fn start_recording_with_devices_and_meeting_inner<R: Runtime>(
+    app: AppHandle<R>,
+    mic_device_name: Option<String>,
+    system_device_name: Option<String>,
+    meeting_name: Option<String>,
+) -> Result<(), String> {
     info!(
         "Starting recording with specific devices: mic={:?}, system={:?}, meeting={:?}",
         mic_device_name, system_device_name, meeting_name
     );
 
-    let engine_lifecycle_guard = super::common::acquire_engine_lifecycle_lock().await;
+    let engine_lifecycle_guard = wait(Stage::LifecycleLock, super::common::acquire_engine_lifecycle_lock()).await;
 
     // Check if already recording
     let current_recording_state = IS_RECORDING.load(Ordering::SeqCst);
@@ -569,12 +623,15 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
         return Err("Recording already in progress".to_string());
     }
 
-    crate::onnx_runtime::ensure_available().map_err(|error| {
+    let runtime_diagnostic = Span::start(Stage::RuntimeCheck);
+    let runtime_result = crate::onnx_runtime::ensure_available();
+    runtime_diagnostic.result(&runtime_result);
+    runtime_result.map_err(|error| {
         map_recording_start_error(&app, crate::onnx_runtime::InitializationError(error).into())
     })?;
     // Validate that transcription models are available before starting recording
     info!("ðŸ” Validating transcription model availability before starting recording...");
-    if let Err(validation_error) = transcription::validate_transcription_model_ready(&app).await {
+    if let Err(validation_error) = track(Stage::ModelValidation, transcription::validate_transcription_model_ready(&app)).await {
         error!("Model validation failed: {}", validation_error);
 
         // Emit error event for frontend - actionable: false to show toast instead of modal
@@ -589,6 +646,7 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
     }
     info!("âœ… Transcription model validation passed");
 
+    let device_diagnostic = Span::start(Stage::DeviceResolution);
     // Resolve devices against the current enumeration. A syntactically valid
     // persisted name can refer to hardware that has since disconnected.
     let mic_device = if let Some(ref name) = mic_device_name {
@@ -650,6 +708,7 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
         default_output_device().ok().map(Arc::new)
     };
 
+    device_diagnostic.complete();
     // Async-first approach for custom devices - no more blocking operations!
     info!("ðŸš€ Starting async recording initialization with custom devices");
 
@@ -685,6 +744,7 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
     manager.set_meeting_name(Some(effective_meeting_name));
 
     install_fatal_error_callback(&mut manager, &app);
+    install_capture_warning_callback(&mut manager, &app);
 
     // Live audio-level meter: forward per-source (mic + system) levels to the UI visualizer
     let level_sender = spawn_level_forwarder(&app);
@@ -693,8 +753,8 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
     // Start recording with specified devices and auto_save setting
     #[cfg(target_os = "windows")]
     let resolved_system_device_name = system_device.as_ref().map(|device| device.name.clone());
-    let transcription_receiver = manager
-        .start_recording(mic_device, system_device, auto_save, Some(level_sender))
+    let transcription_receiver = track(Stage::CaptureStart, manager
+        .start_recording(mic_device, system_device, auto_save, Some(level_sender)))
         .await
         .map_err(|error| { crate::diarization::online::stop(); map_recording_start_error(&app, error) })?;
 
@@ -803,7 +863,7 @@ pub async fn stop_recording<R: Runtime>(
     app: AppHandle<R>,
     args: RecordingArgs,
 ) -> Result<StopOutcome, String> {
-    let _engine_lifecycle_guard = super::common::acquire_engine_lifecycle_lock().await;
+    let _engine_lifecycle_guard = wait(Stage::LifecycleLock, super::common::acquire_engine_lifecycle_lock()).await;
     stop_recording_inner(app, args, false).await
 }
 
@@ -813,11 +873,19 @@ pub async fn stop_recording_from_compact<R: Runtime>(
     app: AppHandle<R>,
     args: RecordingArgs,
 ) -> Result<StopOutcome, String> {
-    let _engine_lifecycle_guard = super::common::acquire_engine_lifecycle_lock().await;
+    let _engine_lifecycle_guard = wait(Stage::LifecycleLock, super::common::acquire_engine_lifecycle_lock()).await;
     stop_recording_inner(app, args, true).await
 }
 
 async fn stop_recording_inner<R: Runtime>(
+    app: AppHandle<R>,
+    _args: RecordingArgs,
+    restore_main: bool,
+) -> Result<StopOutcome, String> {
+    track(Stage::RecordingStop, stop_recording_impl(app, _args, restore_main)).await
+}
+
+async fn stop_recording_impl<R: Runtime>(
     app: AppHandle<R>,
     _args: RecordingArgs,
     restore_main: bool,
@@ -867,7 +935,7 @@ async fn stop_recording_inner<R: Runtime>(
     let stop_result = if let Some(mut manager) = manager_for_cleanup {
         // Use FORCE FLUSH to immediately process all accumulated audio - eliminates 30s delay!
         info!("ðŸš€ Using FORCE FLUSH to eliminate pipeline accumulation delays");
-        let result = manager.stop_streams_and_force_flush().await;
+        let result = track(Stage::CaptureStop, manager.stop_streams_and_force_flush()).await;
         // Store manager back for later cleanup
         let manager_for_cleanup = Some(manager);
         (result, manager_for_cleanup)
@@ -934,10 +1002,14 @@ async fn stop_recording_inner<R: Runtime>(
         });
 
         // Wait up to 10 minutes for transcription completion to prevent indefinite hangs
-        match tokio::time::timeout(
+        let drain_diagnostic = Span::start(Stage::TranscriptionDrain);
+        let drain_result = tokio::time::timeout(
             tokio::time::Duration::from_secs(600), // 10 minutes max
             &mut task_handle
-        ).await {
+        ).await;
+        drain_diagnostic.result(&drain_result.as_ref().map_err(|_| ())
+            .and_then(|inner| inner.as_ref().map_err(|_| ())));
+        match drain_result {
             Ok(Ok(())) => {
                 info!("âœ… ALL transcription chunks processed successfully - no data lost");
             }
@@ -1177,10 +1249,14 @@ async fn stop_recording_inner<R: Runtime>(
         let meeting_folder = manager.get_meeting_folder();
         let meeting_name = manager.get_meeting_name();
 
-        let audio_save_error = match tokio::time::timeout(
+        let save_diagnostic = Span::start(Stage::RecordingSave);
+        let save_result = tokio::time::timeout(
             tokio::time::Duration::from_secs(300), // 5 minutes max for file I/O
             manager.save_recording_only(&app)
-        ).await {
+        ).await;
+        save_diagnostic.result(&save_result.as_ref().map_err(|_| ())
+            .and_then(|inner| inner.as_ref().map_err(|_| ())));
+        let audio_save_error = match save_result {
             Ok(Ok(_)) => {
                 info!("âœ… Recording data saved successfully during cleanup");
                 None
