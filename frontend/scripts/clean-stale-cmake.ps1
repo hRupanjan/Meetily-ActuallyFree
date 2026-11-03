@@ -17,8 +17,15 @@ foreach ($profile in @("release", "debug")) {
       $cache = Join-Path $_.FullName "out\build\CMakeCache.txt"
       if (Test-Path $cache) {
         $gen = (Select-String -Path $cache -Pattern "CMAKE_GENERATOR:INTERNAL=(.*)").Matches.Groups[1].Value
+        # CMake pins CMAKE_MAKE_PROGRAM at first configure. A tree configured with the
+        # pyenv-win ninja shim, or with a ninja.exe that has since been deleted (e.g. a
+        # temporary copy), fails every rebuild until purged.
+        $make = (Select-String -Path $cache -Pattern "CMAKE_MAKE_PROGRAM:FILEPATH=(.*)").Matches.Groups[1].Value
         if ($gen -and $gen -notmatch [regex]::Escape($want)) {
           Write-Host "Purging stale CMake tree ($gen != $want): $($_.Name)"
+          Remove-Item $_.FullName -Recurse -Force
+        } elseif ($make -and ($make -match "pyenv-win[\\/]shims" -or -not (Test-Path $make))) {
+          Write-Host "Purging CMake tree with unusable make program ($make): $($_.Name)"
           Remove-Item $_.FullName -Recurse -Force
         }
       }

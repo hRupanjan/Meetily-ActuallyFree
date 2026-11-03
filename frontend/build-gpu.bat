@@ -173,10 +173,20 @@ if /i "!TAURI_GPU_FEATURE!"=="cuda" (
     REM Tells stage-runtime-deps.ps1 (tauri beforeBundleCommand) to stage CUDA DLLs
     set "MEETILY_STAGE_CUDA=1"
 
-    REM Ninja must be on PATH for the CUDA build
-    where ninja >nul 2>&1
+    REM Ninja must be on PATH for the CUDA build. CMake needs a real ninja.exe:
+    REM pyenv-win's `ninja`/`ninja.bat` shims fail as CMAKE_MAKE_PROGRAM, so when
+    REM only a shim is visible, prepend the executable pyenv resolves it to.
+    where ninja.exe >nul 2>&1
     if errorlevel 1 (
-        echo    [WARN]  ninja not found on PATH - CUDA build needs it. Install: pip install ninja
+        set "PYENV_NINJA="
+        for /f "delims=" %%n in ('pyenv which ninja 2^>nul') do set "PYENV_NINJA=%%n"
+        if defined PYENV_NINJA if not exist "!PYENV_NINJA!" set "PYENV_NINJA="
+        if defined PYENV_NINJA (
+            for %%d in ("!PYENV_NINJA!") do set "PATH=%%~dpd;!PATH!"
+            echo    Using ninja.exe resolved via pyenv: !PYENV_NINJA!
+        ) else (
+            echo    [WARN]  ninja.exe not found on PATH - CUDA build needs it. Install: pip install ninja
+        )
     )
 
     REM Purge stale VS-generator CMake caches so cmake-rs reconfigures with Ninja
