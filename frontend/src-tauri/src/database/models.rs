@@ -98,6 +98,14 @@ pub struct Setting {
     #[sqlx(rename = "customOpenAIConfig")]
     #[serde(rename = "customOpenAIConfig")]
     pub custom_openai_config: Option<String>,
+    /// Optional cap on summary output length; None means the provider default
+    #[sqlx(rename = "summaryMaxTokens")]
+    #[serde(rename = "summaryMaxTokens")]
+    pub summary_max_tokens: Option<i64>,
+    /// Explicit path to the Claude Code CLI executable; None means auto-discover
+    #[sqlx(rename = "claudeCliPath")]
+    #[serde(rename = "claudeCliPath")]
+    pub claude_cli_path: Option<String>,
 }
 
 impl Setting {

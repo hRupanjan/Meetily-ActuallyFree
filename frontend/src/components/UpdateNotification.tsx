@@ -35,14 +35,13 @@ export function showUpdateNotification(updateInfo: UpdateInfo, onUpdateClick?: (
           e.stopPropagation();
           handleClick();
         }}
-        className="text-sm font-medium text-brand hover:text-brand underline"
+        className="text-sm font-medium text-af-accent hover:text-af-accent underline"
       >
         View Details
       </button>
     </div>,
     {
       duration: 10000,
-      position: 'bottom-center',
     }
   );
 }

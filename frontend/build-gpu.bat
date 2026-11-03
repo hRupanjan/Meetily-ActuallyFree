@@ -38,10 +38,23 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3118 2^>nul') do (
 
 REM Set libclang path for whisper-rs-sys
 set "LIBCLANG_PATH=C:\Program Files\LLVM\bin"
+if exist "%LOCALAPPDATA%\tauri\NSIS" set "PATH=%LOCALAPPDATA%\tauri\NSIS;%PATH%"
+set "BINDGEN_EXTRA_CLANG_ARGS=-I""C:/Program Files/LLVM/lib/clang/18/include"""
+if not defined CMAKE_CUDA_ARCHITECTURES set "CMAKE_CUDA_ARCHITECTURES=75;80;86;89;90;100;120"
+set "CMAKE_CUDA_STANDARD=17"
+set "CMAKE_CUDA_FLAGS=--std=c++17 -DCCCL_IGNORE_DEPRECATED_CPP_DIALECT -DCCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING -Xcompiler="/Zc:preprocessor""
+set "CL=/DCCCL_IGNORE_DEPRECATED_CPP_DIALECT /DCCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING /Zc:preprocessor"
+set "_CL_=/DCCCL_IGNORE_DEPRECATED_CPP_DIALECT /DCCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING /Zc:preprocessor"
 
 REM Try to find and setup Visual Studio environment
 echo [SETUP] Setting up Visual Studio environment...
-if exist "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" (
+if exist "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat" (
+    echo    Using Visual Studio 18 Build Tools
+    call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1
+) else if exist "C:\Program Files\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat" (
+    echo    Using Visual Studio 18 Build Tools
+    call "C:\Program Files\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1
+) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" (
     echo    Using Visual Studio 2022 Build Tools
     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1
 
@@ -160,10 +173,20 @@ if /i "!TAURI_GPU_FEATURE!"=="cuda" (
     REM Tells stage-runtime-deps.ps1 (tauri beforeBundleCommand) to stage CUDA DLLs
     set "MEETILY_STAGE_CUDA=1"
 
-    REM Ninja must be on PATH for the CUDA build
-    where ninja >nul 2>&1
+    REM Ninja must be on PATH for the CUDA build. CMake needs a real ninja.exe:
+    REM pyenv-win's `ninja`/`ninja.bat` shims fail as CMAKE_MAKE_PROGRAM, so when
+    REM only a shim is visible, prepend the executable pyenv resolves it to.
+    where ninja.exe >nul 2>&1
     if errorlevel 1 (
-        echo    [WARN]  ninja not found on PATH - CUDA build needs it. Install: pip install ninja
+        set "PYENV_NINJA="
+        for /f "delims=" %%n in ('pyenv which ninja 2^>nul') do set "PYENV_NINJA=%%n"
+        if defined PYENV_NINJA if not exist "!PYENV_NINJA!" set "PYENV_NINJA="
+        if defined PYENV_NINJA (
+            for %%d in ("!PYENV_NINJA!") do set "PATH=%%~dpd;!PATH!"
+            echo    Using ninja.exe resolved via pyenv: !PYENV_NINJA!
+        ) else (
+            echo    [WARN]  ninja.exe not found on PATH - CUDA build needs it. Install: pip install ninja
+        )
     )
 
     REM Purge stale VS-generator CMake caches so cmake-rs reconfigures with Ninja
